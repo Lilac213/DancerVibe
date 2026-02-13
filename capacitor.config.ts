@@ -1,8 +1,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.groovegrid.app',
-  appName: 'GrooveGrid',
+  appId: 'com.dancervibe.app',
+  appName: 'DancerVibe',
   webDir: 'dist',
   server: {
     androidScheme: 'https'

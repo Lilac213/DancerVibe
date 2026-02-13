@@ -370,7 +370,7 @@ export const generateSummary = async (rawClasses: ClassSession[], user: User, mo
         } else if (user.role === 'teacher') {
             // --- TEACHER PROMPT ---
             systemPrompt = `
-            你是一个专业的街舞主理人助理，正在为导师 **${user.name}** 生成一份${timeRange}的教学复盘报告。
+            你是一个专业的街舞主理人助理，正在为老师 **${user.name}** 生成一份${timeRange}的教学复盘报告。
             请使用 **Markdown** 格式输出，语气专业但带有一点 Respect 🫡。
 
             ${statsSummary}
@@ -380,7 +380,7 @@ export const generateSummary = async (rawClasses: ClassSession[], user: User, mo
 
             **请按照以下结构生成 Markdown 内容：**
 
-            ### Respect, ${user.name} 导师! 🫡
+            ### Respect, ${user.name} 老师! 🫡
             [简短评价本周的教学强度]
 
             ### 🩰 教学输出复盘

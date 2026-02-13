@@ -1,6 +1,6 @@
 import { DanceLog } from '../types';
 
-const DB_NAME = 'GrooveGridLogDB';
+const DB_NAME = 'DancerVibeLogDB';
 const STORE_NAME = 'dance_logs';
 const VERSION = 1;
 

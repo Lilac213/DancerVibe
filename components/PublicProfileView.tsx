@@ -56,7 +56,7 @@ export const PublicProfileView: React.FC<PublicProfileViewProps> = ({ user, onBa
                     {user.role === 'teacher' && <Crown size={10} />}
                     {user.role === 'studio' && <Shield size={10} />}
                     {user.role === 'student' && <UserCircle size={10} />}
-                    {user.role === 'teacher' ? '导师' : user.role === 'studio' ? '舞室' : '学员'}
+                    {user.role === 'teacher' ? '老师' : user.role === 'studio' ? '舞室' : '学员'}
                 </span>
                 {user.social?.douyin && (
                     <div className="w-5 h-5 bg-black text-white rounded flex items-center justify-center text-[8px] font-bold">♪</div>

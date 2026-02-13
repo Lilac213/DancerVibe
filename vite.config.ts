@@ -9,8 +9,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'GrooveGrid - 街舞课表管理',
-        short_name: 'GrooveGrid',
+        name: 'DancerVibe - 街舞课表管理',
+        short_name: 'DancerVibe',
         theme_color: '#6366f1',
         icons: [
           { src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },

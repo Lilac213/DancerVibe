@@ -109,11 +109,11 @@ const LogCreator = ({
                 </div>
                 <div className="flex gap-4">
                     <div className="flex-1">
-                        <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">导师</label>
+                        <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">老师</label>
                         <div className="relative">
                             <User size={16} className="absolute left-3.5 top-4 text-gray-400" />
                             <input className="w-full bg-gray-50 pl-10 pr-4 py-3.5 rounded-xl font-bold border-2 border-transparent focus:bg-white focus:border-black outline-none transition-all" 
-                                placeholder="导师名"
+                                placeholder="老师名"
                                 value={formData.teacher} onChange={e => setFormData({...formData, teacher: e.target.value})}
                             />
                         </div>
@@ -401,7 +401,7 @@ export const DanceLogView: React.FC<DanceLogViewProps> = ({ onGoPractice, prefil
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">导师</div>
+                                <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">老师</div>
                                 <div className="font-bold text-gray-900 flex items-center gap-2 truncate">
                                     <User size={14} className="shrink-0"/> {selectedLog.teacher || '未填写'}
                                 </div>

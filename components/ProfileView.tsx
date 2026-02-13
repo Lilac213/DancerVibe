@@ -413,7 +413,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     {user.role === 'teacher' && <Crown size={12} />}
                     {user.role === 'studio' && <Shield size={12} />}
                     {user.role === 'student' && <UserCircle size={12} />}
-                    {user.role === 'teacher' ? '导师' : user.role === 'studio' ? '舞室' : '学员'}
+                    {user.role === 'teacher' ? '老师' : user.role === 'studio' ? '舞室' : '学员'}
                 </span>
             </div>
             

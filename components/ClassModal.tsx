@@ -259,7 +259,7 @@ const ClassModal: React.FC<ClassModalProps> = ({ isOpen, onClose, onSave, onDele
                <input
                 type="text"
                 required
-                placeholder="导师姓名"
+                placeholder="老师姓名"
                 className="w-full bg-white border-2 border-gray-100 rounded-xl py-3.5 pl-11 pr-4 text-gray-900 placeholder-gray-400 focus:border-red-600 outline-none transition-all"
                 value={formData.teacher}
                 onChange={(e) => setFormData({ ...formData, teacher: e.target.value })}

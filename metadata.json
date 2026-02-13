@@ -1,5 +1,5 @@
 {
-  "name": "GrooveGrid",
+  "name": "DancerVibe",
   "description": "街舞编舞师和舞者专属的课表管理 APP。轻松管理固定课和代课安排，智能检测冲突，一键生成周报分享给学生或朋友圈。",
   "requestFramePermissions": [
     "microphone",

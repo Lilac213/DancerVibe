@@ -1,6 +1,6 @@
 {
-  "name": "GrooveGrid - 街舞课表管理",
-  "short_name": "GrooveGrid",
+  "name": "DancerVibe - 街舞课表管理",
+  "short_name": "DancerVibe",
   "description": "街舞编舞师和舞者专属的课表管理 APP",
   "start_url": "/",
   "display": "standalone",

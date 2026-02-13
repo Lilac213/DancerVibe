@@ -15,8 +15,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
 
   useEffect(() => {
     // Only pre-fill if we are in login mode initially
-    const storedName = localStorage.getItem('groovegrid_username');
-    const storedRole = localStorage.getItem('groovegrid_role');
+    const storedName = localStorage.getItem('dancervibe_username');
+    const storedRole = localStorage.getItem('dancervibe_role');
 
     if (storedName) setName(storedName);
     if (storedRole) setRole(storedRole as UserRole);
@@ -31,8 +31,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
           alert(`注册成功！欢迎, ${name}`);
       }
       
-      localStorage.setItem('groovegrid_username', name);
-      localStorage.setItem('groovegrid_role', role);
+      localStorage.setItem('dancervibe_username', name);
+      localStorage.setItem('dancervibe_role', role);
       onLogin({ name, role }, '');
     } else {
         alert("请输入账号和密码");
@@ -88,7 +88,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                     }`}
                 >
                     <Zap size={24} className={role === 'teacher' ? 'fill-red-600 text-red-600' : 'text-gray-300'} />
-                    <span className="font-bold text-xs">导师</span>
+                    <span className="font-bold text-xs">老师</span>
                 </button>
                 
                 <button
