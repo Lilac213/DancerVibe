@@ -639,7 +639,7 @@ export const PracticeTool: React.FC<PracticeToolProps> = () => {
         )}
 
         {/* Collapsible Workspace */}
-        <div className={`bg-zinc-900 border-t border-zinc-800 transition-all duration-300 ease-in-out px-4 pt-2 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] flex flex-col z-50 ${isPanelExpanded ? 'rounded-t-3xl pb-10' : 'rounded-t-2xl pb-6'}`}>
+        <div className={`bg-zinc-900 border-t border-zinc-800 transition-all duration-300 ease-in-out px-4 pt-2 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] flex flex-col z-50 ${isPanelExpanded ? 'rounded-t-3xl pb-4' : 'rounded-t-2xl pb-2'}`}>
             
             {/* Drag Handle */}
             <div 
@@ -699,16 +699,16 @@ export const PracticeTool: React.FC<PracticeToolProps> = () => {
             </div>
 
             {/* Expanded Controls Area */}
-            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isPanelExpanded ? 'max-h-[300px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'}`}>
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isPanelExpanded ? 'max-h-[300px] opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0'}`}>
                 
                 {/* Speed Grid */}
-                <div className="mb-3">
-                     <div className="flex justify-between items-center mb-1.5 px-1">
+                <div className="mb-2">
+                     <div className="flex justify-between items-center mb-1 px-1">
                          <span className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">精细倍速</span>
                      </div>
-                     <div className="grid grid-cols-6 gap-1.5">
+                     <div className="grid grid-cols-6 gap-1">
                          {SPEEDS.map(s => (
-                             <button key={s} onClick={() => handleSpeedChange(s)} className={`py-2 text-[10px] font-bold rounded-lg transition-all ${playbackRate === s ? 'bg-zinc-600 text-white ring-1 ring-zinc-500 shadow-sm' : 'bg-zinc-800 text-gray-400 hover:bg-zinc-700'}`}>
+                             <button key={s} onClick={() => handleSpeedChange(s)} className={`py-1.5 text-[10px] font-bold rounded-lg transition-all ${playbackRate === s ? 'bg-zinc-600 text-white ring-1 ring-zinc-500 shadow-sm' : 'bg-zinc-800 text-gray-400 hover:bg-zinc-700'}`}>
                                  {s}
                              </button>
                          ))}
@@ -716,11 +716,11 @@ export const PracticeTool: React.FC<PracticeToolProps> = () => {
                 </div>
 
                 {/* Compare Mode Toggle */}
-                <div className="mb-3">
-                    <div className="flex justify-between items-center mb-1.5 px-1">
+                <div className="mb-2">
+                    <div className="flex justify-between items-center mb-1 px-1">
                          <span className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">高级功能</span>
                      </div>
-                     <div className="flex gap-2">
+                     <div className="flex gap-1.5">
                         <button 
                             onClick={() => {
                                 if (isCompareMode) {
@@ -731,7 +731,7 @@ export const PracticeTool: React.FC<PracticeToolProps> = () => {
                                     setShowComparePicker(true);
                                 }
                             }}
-                            className={`flex-1 py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 border ${
+                            className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 border ${
                                 isCompareMode 
                                 ? 'bg-blue-600 text-white border-blue-500' 
                                 : 'bg-zinc-800 text-gray-300 border-zinc-800 hover:bg-zinc-700'
@@ -742,9 +742,9 @@ export const PracticeTool: React.FC<PracticeToolProps> = () => {
 
                         {/* Sync Adjustment Button (Visible only in compare mode) */}
                         {isCompareMode && (
-                             <button 
+                             <button
                                 onClick={() => setShowSyncModal(true)}
-                                className={`flex-1 py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 border bg-zinc-800 text-gray-300 border-zinc-800 hover:bg-zinc-700`}
+                                className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 border bg-zinc-800 text-gray-300 border-zinc-800 hover:bg-zinc-700`}
                             >
                                 <SlidersHorizontal size={14} /> 对齐调整
                             </button>
@@ -754,7 +754,7 @@ export const PracticeTool: React.FC<PracticeToolProps> = () => {
 
                 {/* AB Loop Row */}
                 <div>
-                     <div className="flex justify-between items-center mb-1.5 px-1">
+                     <div className="flex justify-between items-center mb-1 px-1">
                          <span className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">A-B 循环</span>
                          {(loopA !== null || loopB !== null) && (
                              <span className="text-[10px] text-orange-500 font-bold animate-pulse">
@@ -762,11 +762,11 @@ export const PracticeTool: React.FC<PracticeToolProps> = () => {
                              </span>
                          )}
                      </div>
-                     <div className="flex gap-2">
-                         <button onClick={() => { setLoopA(null); setLoopB(null); }} disabled={loopA === null} className="flex-1 py-3 rounded-xl bg-zinc-800 text-gray-400 font-bold text-xs disabled:opacity-30 hover:bg-zinc-700 transition-colors">
+                     <div className="flex gap-1.5">
+                         <button onClick={() => { setLoopA(null); setLoopB(null); }} disabled={loopA === null} className="flex-1 py-2 rounded-xl bg-zinc-800 text-gray-400 font-bold text-xs disabled:opacity-30 hover:bg-zinc-700 transition-colors">
                              重置
                          </button>
-                         <button onClick={setLoopPoint} className={`flex-[3] py-3 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-2 ${loopA !== null && loopB !== null ? 'bg-zinc-700 text-white border border-zinc-600' : (loopA !== null ? 'bg-orange-600 text-white shadow-orange-600/20' : 'bg-white text-black')}`}>
+                         <button onClick={setLoopPoint} className={`flex-[3] py-2 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-2 ${loopA !== null && loopB !== null ? 'bg-zinc-700 text-white border border-zinc-600' : (loopA !== null ? 'bg-orange-600 text-white shadow-orange-600/20' : 'bg-white text-black')}`}>
                              {loopA === null ? <><Repeat size={14}/> 设定起点 (A)</> : (loopB === null ? <><Repeat size={14}/> 设定终点 (B)</> : '清除并重新设定')}
                          </button>
                      </div>

@@ -1,10 +1,6 @@
-// NewAPI 中转站客户端适配器
-// 兼容 Gemini API v1beta 格式
-
-// @ts-ignore - Vite 会在构建时注入这些环境变量
-const BASE_URL = 'https://generativelanguage.googleapis.com';
-// @ts-ignore - Vite 会在构建时注入这些环境变量
-const API_KEY = import.meta.env.VITE_API_KEY || 'AIzaSyAoiHU0caH3n7a-dwx2Zg66h2cojIEVjEw';
+// Qwen API 客户端适配器
+const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+const API_KEY = 'sk-f9a4a08ce35e4412ade3624e6d3cfa27';
 
 interface Part {
   text?: string;
@@ -48,82 +44,53 @@ export const generateContent = async (
   request: GenerateContentRequest
 ): Promise<GenerateContentResponse> => {
   try {
-    const { model, contents, config } = request;
-    
-    // 格式化 contents
+    const { contents, config } = request;
     const formattedContents = Array.isArray(contents) ? contents : [contents];
     
-    // 构建请求体
-    const body: any = {
-      contents: formattedContents
-    };
+    const messages: any[] = [];
     
     if (config?.systemInstruction) {
-      body.systemInstruction = formatSystemInstruction(config.systemInstruction);
+      const sysInst = formatSystemInstruction(config.systemInstruction);
+      messages.push({
+        role: 'system',
+        content: sysInst.parts.map((p: Part) => p.text).join('')
+      });
     }
     
-    if (config?.tools) {
-      body.tools = config.tools;
+    formattedContents.forEach((content: Content) => {
+      const textContent = content.parts.filter(p => p.text).map(p => p.text).join('');
+      if (textContent) {
+        messages.push({
+          role: content.role === 'model' ? 'assistant' : 'user',
+          content: textContent
+        });
+      }
+    });
+    
+    const qwenBody: any = { model: 'qwen-plus', messages };
+    
+    if (config?.responseMimeType === 'application/json') {
+      qwenBody.response_format = { type: 'json_object' };
     }
     
-    if (config?.responseMimeType) {
-      body.generationConfig = {
-        responseMimeType: config.responseMimeType
-      };
-    }
-    
-    if (config?.responseSchema) {
-      body.generationConfig = {
-        ...body.generationConfig,
-        responseSchema: config.responseSchema
-      };
-    }
-    
-    // 调用 NewAPI 中转站
-    const url = `${BASE_URL}/v1beta/models/${model}:generateContent`;
-    
-    const response = await fetch(url, {
+    const response = await fetch(`${BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${API_KEY}`
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(qwenBody)
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`NewAPI Error: ${response.status} - ${errorText}`);
+      throw new Error(`Qwen API Error: ${response.status}`);
     }
     
     const data = await response.json();
-    
-    // 解析响应
-    const candidate = data.candidates?.[0];
-    if (!candidate) {
-      throw new Error('No candidate in response');
-    }
-    
-    const parts = candidate.content?.parts || [];
-    
-    // 提取文本
-    const textParts = parts.filter((p: Part) => p.text);
-    const text = textParts.map((p: Part) => p.text).join('');
-    
-    // 提取 function calls
-    const functionCallParts = parts.filter((p: Part) => p.functionCall);
-    const functionCalls = functionCallParts.map((p: Part) => ({
-      name: p.functionCall!.name,
-      args: p.functionCall!.args
-    }));
-    
-    return {
-      text,
-      functionCalls: functionCalls.length > 0 ? functionCalls : undefined
-    };
+    return { text: data.choices?.[0]?.message?.content || '', functionCalls: undefined };
     
   } catch (error) {
-    console.error('NewAPI Client Error:', error);
+    console.error('Qwen API Error:', error);
     throw error;
   }
 };

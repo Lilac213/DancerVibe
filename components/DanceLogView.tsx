@@ -5,6 +5,9 @@ import { zhCN } from 'date-fns/locale';
 import { DanceLog } from '../types';
 import { getLogs, saveLog, deleteLog, generateThumbnail } from '../services/danceLogService';
 import { TimePicker24h } from './TimePicker';
+import { inferClassTime } from '../utils/classTimeInference';
+import { Capacitor } from '@capacitor/core';
+import PhotoLibrary from '../src/plugins/photoLibrary';
 
 interface DanceLogViewProps {
     onGoPractice: (videoBlob: Blob) => void;
@@ -51,9 +54,31 @@ const LogCreator = ({
         }));
     }, [dayDate, startTime, durationMins, setFormData]);
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             setNewLogVideo(e.target.files[0]);
+        }
+    };
+
+    const handlePickFromLibrary = async () => {
+        if (!Capacitor.isNativePlatform()) return;
+        try {
+            const result = await PhotoLibrary.pickVideo();
+            if (result.creationDate) {
+                const inferredTime = inferClassTime(result.creationDate);
+                const date = new Date(result.creationDate);
+                const dayDate = format(date, 'yyyy-MM-dd');
+                setDayDate(dayDate);
+                setStartTime(inferredTime.startTime);
+                const startParts = inferredTime.startTime.split(':');
+                const endParts = inferredTime.endTime.split(':');
+                const startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+                const endMins = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+                setDurationMins(endMins - startMins);
+            }
+            setStep(2);
+        } catch (e) {
+            console.error('Failed to pick video', e);
         }
     };
 
@@ -68,8 +93,8 @@ const LogCreator = ({
                 <p className="text-sm text-gray-500 px-4 leading-relaxed">视频将保存在本地设备中，作为你的成长档案。</p>
             </div>
             
-            <label className="block w-full max-w-xs mx-auto aspect-[4/5] bg-gray-50 border-2 border-dashed border-gray-300 rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:border-red-500 hover:bg-red-50 transition-all relative overflow-hidden group">
-                <input type="file" accept="video/*" className="hidden" onChange={(e) => { handleFileSelect(e); setStep(2); }} />
+            {Capacitor.isNativePlatform() ? (
+                <button onClick={handlePickFromLibrary} className="block w-full max-w-xs mx-auto aspect-[4/5] bg-gray-50 border-2 border-dashed border-gray-300 rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:border-red-500 hover:bg-red-50 transition-all relative overflow-hidden group">
                 {newLogVideo || (isEditing && formData.thumbnail) ? (
                     <>
                         <img src={isEditing && !newLogVideo ? formData.thumbnail : (newLogVideo ? URL.createObjectURL(newLogVideo) : '')} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-500" />
@@ -86,7 +111,28 @@ const LogCreator = ({
                         <span className="text-sm font-bold text-gray-400 group-hover:text-red-500 transition-colors">点击上传</span>
                     </>
                 )}
-            </label>
+                </button>
+            ) : (
+                <label className="block w-full max-w-xs mx-auto aspect-[4/5] bg-gray-50 border-2 border-dashed border-gray-300 rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:border-red-500 hover:bg-red-50 transition-all relative overflow-hidden group">
+                    <input type="file" accept="video/*" className="hidden" onChange={(e) => { handleFileSelect(e); setStep(2); }} />
+                    {newLogVideo || (isEditing && formData.thumbnail) ? (
+                        <>
+                            <img src={isEditing && !newLogVideo ? formData.thumbnail : (newLogVideo ? URL.createObjectURL(newLogVideo) : '')} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-500" />
+                            <div className="relative z-10 bg-white/80 backdrop-blur-md p-3 rounded-full shadow-lg">
+                                <Plus size={32} className="text-black" />
+                            </div>
+                            <span className="relative z-10 text-sm font-bold text-black mt-3 bg-white/50 px-3 py-1 rounded-full backdrop-blur-sm">点击替换</span>
+                        </>
+                    ) : (
+                        <>
+                            <div className="w-20 h-20 bg-white rounded-full shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <Plus size={36} className="text-gray-300 group-hover:text-red-500 transition-colors" />
+                            </div>
+                            <span className="text-sm font-bold text-gray-400 group-hover:text-red-500 transition-colors">点击上传</span>
+                        </>
+                    )}
+                </label>
+            )}
             {isEditing && (
                 <button onClick={() => setStep(2)} className="text-sm font-bold text-gray-400 hover:text-black underline underline-offset-4 decoration-2">跳过，保留原视频</button>
             )}

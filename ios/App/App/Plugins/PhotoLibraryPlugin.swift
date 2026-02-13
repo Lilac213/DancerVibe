@@ -86,7 +86,23 @@ extension PhotoLibraryPlugin: UIImagePickerControllerDelegate, UINavigationContr
         guard let call = self.bridge?.savedCall(withID: "pickVideo") else { return }
         
         if let asset = info[.phAsset] as? PHAsset {
-            call.resolve(["assetId": asset.localIdentifier, "duration": asset.duration, "width": asset.pixelWidth, "height": asset.pixelHeight])
+            var result: [String: Any] = [
+                "assetId": asset.localIdentifier,
+                "duration": asset.duration,
+                "width": asset.pixelWidth,
+                "height": asset.pixelHeight
+            ]
+            
+            if let creationDate = asset.creationDate {
+                result["creationDate"] = ISO8601DateFormatter().string(from: creationDate)
+            }
+            
+            if let location = asset.location {
+                result["latitude"] = location.coordinate.latitude
+                result["longitude"] = location.coordinate.longitude
+            }
+            
+            call.resolve(result)
         } else {
             call.reject("Failed to get asset")
         }

@@ -6,6 +6,9 @@ export interface PhotoLibraryPlugin {
     duration: number;
     width: number;
     height: number;
+    creationDate?: string;
+    latitude?: number;
+    longitude?: number;
   }>;
   
   getVideoUrl(options: { assetId: string }): Promise<{
