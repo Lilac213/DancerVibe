@@ -51,17 +51,23 @@ export interface Tag {
 
 export interface DanceLog {
   id: string;
-  date: string; // ISO String for the log entry
-  videoBlob?: Blob; // Stored video file
-  thumbnail?: string; // Data URL
+  date: string;
+  videoBlob?: Blob;
+  thumbnail?: string;
   studio: string;
   teacher: string;
   song: string;
-  styles: string[]; // e.g. ["HipHop", "Swag"]
-  difficulty: number; // 1-5
+  styles: string[];
+  difficulty: number;
   reflection?: string;
   mood?: 'fire' | 'happy' | 'neutral' | 'tired' | 'frustrated';
   durationSeconds?: number;
+  
+  // Capacitor iOS: 相册引用
+  videoAssetId?: string;
+  videoUrl?: string;
+  videoWidth?: number;
+  videoHeight?: number;
 }
 
 export const DAYS_OF_WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
