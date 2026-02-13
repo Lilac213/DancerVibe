@@ -67,7 +67,10 @@ export const generateContent = async (
       }
     });
     
-    const qwenBody: any = { model: 'qwen-plus', messages };
+    const qwenBody: any = {
+      model: 'qwen-plus',
+      messages
+    };
     
     if (config?.responseMimeType === 'application/json') {
       qwenBody.response_format = { type: 'json_object' };
