@@ -2,9 +2,9 @@
 // 兼容 Gemini API v1beta 格式
 
 // @ts-ignore - Vite 会在构建时注入这些环境变量
-const BASE_URL = process.env.NEWAPI_BASE_URL || 'https://docs.newapi.pro';
+const BASE_URL = 'https://generativelanguage.googleapis.com';
 // @ts-ignore - Vite 会在构建时注入这些环境变量
-const API_KEY = process.env.NEWAPI_API_KEY || '';
+const API_KEY = import.meta.env.VITE_API_KEY || 'AIzaSyAoiHU0caH3n7a-dwx2Zg66h2cojIEVjEw';
 
 interface Part {
   text?: string;

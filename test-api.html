@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试 Gemini API</title>
+</head>
+<body>
+    <h1>测试 Gemini API 调用</h1>
+    <button onclick="testAPI()">点击测试</button>
+    <pre id="result"></pre>
+    
+    <script>
+        async function testAPI() {
+            const result = document.getElementById('result');
+            result.textContent = '🧪 测试中...\n';
+            
+            const url = 'https://docs.newapi.pro/v1beta/models/gemini-2.0-flash:generateContent';
+            const apiKey = 'AIzaSyAoiHU0caH3n7a-dwx2Zg66h2cojIEVjEw';
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            role: 'user',
+                            parts: [{ text: '你好，请回复"测试成功"' }]
+                        }]
+                    })
+                });
+                
+                result.textContent += `📊 状态: ${response.status} ${response.statusText}\n\n`;
+                
+                if (!response.ok) {
+                    const error = await response.text();
+                    result.textContent += `❌ 错误:\n${error}`;
+                    return;
+                }
+                
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                result.textContent += `✅ 响应:\n${JSON.stringify(data, null, 2)}\n\n`;
+                result.textContent += `✨ AI 回复: ${text}\n\n`;
+                result.textContent += text ? '🎉 测试成功！' : '⚠️ 未获取到回复';
+                
+            } catch (error) {
+                result.textContent += `❌ 错误: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
