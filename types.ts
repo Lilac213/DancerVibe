@@ -49,6 +49,16 @@ export interface Tag {
   reason?: string;
 }
 
+export interface Song {
+  id: string;
+  title: string;
+  artist: string;
+  album?: string;
+  coverUrl?: string;
+  acrcloudId?: string;
+  createdAt: string;
+}
+
 export interface DanceLog {
   id: string;
   date: string;
@@ -71,6 +81,10 @@ export interface DanceLog {
   creationDate?: string;
   latitude?: number;
   longitude?: number;
+  
+  // 音乐识别
+  songId?: string;
+  musicConfidence?: number;
 }
 
 export const DAYS_OF_WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];

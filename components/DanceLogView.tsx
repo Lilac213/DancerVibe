@@ -8,6 +8,7 @@ import { TimePicker24h } from './TimePicker';
 import { inferClassTime } from '../utils/classTimeInference';
 import { Capacitor } from '@capacitor/core';
 import PhotoLibrary from '../src/plugins/photoLibrary';
+import { recognizeMusic } from '../services/musicRecognitionService';
 
 interface DanceLogViewProps {
     onGoPractice: (videoBlob: Blob) => void;
@@ -38,11 +39,11 @@ const LogCreator = ({
     onSave: any, 
     onCancel: any 
 }) => {
-    // Local state for formatted date/time inputs which sync to formData
     const initialDate = formData.date ? parseISO(formData.date) : new Date();
     const [dayDate, setDayDate] = useState(format(initialDate, 'yyyy-MM-dd'));
     const [startTime, setStartTime] = useState(format(initialDate, 'HH:mm'));
     const [durationMins, setDurationMins] = useState(Math.floor((formData.durationSeconds || 5400) / 60));
+    const [isRecognizing, setIsRecognizing] = useState(false);
 
     // Sync local changes to parent formData when leaving step 2 or saving
     useEffect(() => {
@@ -56,7 +57,22 @@ const LogCreator = ({
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            setNewLogVideo(e.target.files[0]);
+            const file = e.target.files[0];
+            setNewLogVideo(file);
+            
+            // 自动识别音乐
+            setIsRecognizing(true);
+            const musicInfo = await recognizeMusic(file);
+            setIsRecognizing(false);
+            
+            if (musicInfo) {
+                setFormData((prev: any) => ({
+                    ...prev,
+                    song: `${musicInfo.artist} - ${musicInfo.title}`,
+                    songId: musicInfo.songId,
+                    musicConfidence: musicInfo.confidence
+                }));
+            }
         }
     };
 
@@ -65,16 +81,9 @@ const LogCreator = ({
         try {
             const result = await PhotoLibrary.pickVideo();
             if (result.creationDate) {
-                const inferredTime = inferClassTime(result.creationDate);
-                const date = new Date(result.creationDate);
-                const dayDate = format(date, 'yyyy-MM-dd');
-                setDayDate(dayDate);
+                const inferredTime = inferClassTime(result.creationDate, durationMins);
+                setDayDate(inferredTime.date);
                 setStartTime(inferredTime.startTime);
-                const startParts = inferredTime.startTime.split(':');
-                const endParts = inferredTime.endTime.split(':');
-                const startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
-                const endMins = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
-                setDurationMins(endMins - startMins);
             }
             setStep(2);
         } catch (e) {
@@ -147,10 +156,14 @@ const LogCreator = ({
             
             <div className="space-y-5">
                 <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">舞曲 / 内容</label>
-                    <input className="w-full bg-gray-50 px-4 py-3.5 rounded-xl font-bold border-2 border-transparent focus:bg-white focus:border-black outline-none transition-all text-gray-900 text-lg" 
+                    <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block flex items-center gap-2">
+                        舞曲 / 内容
+                        {isRecognizing && <span className="text-[10px] text-red-500 animate-pulse">识别中...</span>}
+                    </label>
+                    <input className="w-full bg-gray-50 px-4 py-3.5 rounded-xl font-bold border-2 border-transparent focus:bg-white focus:border-black outline-none transition-all text-gray-900 text-lg"
                         placeholder="例如: Tyla - Water"
                         value={formData.song} onChange={e => setFormData({...formData, song: e.target.value})} autoFocus
+                        disabled={isRecognizing}
                     />
                 </div>
                 <div className="flex gap-4">

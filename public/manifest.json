@@ -3,10 +3,12 @@
   "short_name": "DancerVibe",
   "description": "街舞编舞师和舞者专属的课表管理 APP",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
   "orientation": "portrait",
+  "categories": ["lifestyle", "entertainment"],
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -20,5 +22,7 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "screenshots": [],
+  "shortcuts": []
 }
