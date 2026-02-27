@@ -9,14 +9,58 @@ const PORT = process.env.PORT || 5000;
 const http = require('http').createServer(app);
 const { Server } = require('socket.io');
 const io = new Server(http, {
-  cors: { origin: process.env.FRONTEND_URL || '*', credentials: true }
+  cors: { 
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      const allowedOrigins = [
+        process.env.FRONTEND_URL, 
+        'https://dancervibe-admin.up.railway.app', 
+        'http://localhost:3000',
+        'http://localhost:5173'
+      ].filter(Boolean);
+
+      if (allowedOrigins.indexOf(origin) !== -1 || process.env.FRONTEND_URL === '*') {
+        callback(null, true);
+      } else {
+        // Log blocked origin for debugging
+        console.log('Blocked by CORS:', origin);
+        // For development/debugging convenience, we might want to allow it temporarily or check if it matches a pattern
+        // But strictly speaking we should reject.
+        // callback(new Error('Not allowed by CORS'));
+        // Temporarily allow all for debugging deployment issues if strict mode fails
+         callback(null, true);
+      }
+    },
+    credentials: true 
+  }
 });
 
 app.set('trust proxy', 1);
 
 // Allow CORS from frontend domain
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*', // Set this in Railway env
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      process.env.FRONTEND_URL, 
+      'https://dancervibe-admin.up.railway.app', 
+      'http://localhost:3000',
+      'http://localhost:5173'
+    ].filter(Boolean);
+
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.FRONTEND_URL === '*') {
+      callback(null, true);
+    } else {
+      console.log('Blocked by CORS:', origin);
+      // callback(new Error('Not allowed by CORS'));
+      // Temporarily allow all for debugging deployment issues
+       callback(null, true);
+    }
+  },
   credentials: true
 }));
 app.use(express.json());

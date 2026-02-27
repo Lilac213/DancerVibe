@@ -34,6 +34,10 @@ const classifyError = (msg) => {
   return '未知错误';
 };
 
+router.get('/check-auth', requireAdmin, (req, res) => {
+  res.json({ status: 'ok', message: 'Token is valid' });
+});
+
 router.get('/months', requireAdmin, async (req, res) => {
   try {
     const months = new Set();
