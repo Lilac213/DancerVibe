@@ -1,11 +1,12 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 try:
-    from .models import Base, Studio, Teacher, Schedule
+    from .models import Base, Studio, Teacher, Schedule, SysDict, AuditTask
 except ImportError:
-    from models import Base, Studio, Teacher, Schedule
+    from models import Base, Studio, Teacher, Schedule, SysDict, AuditTask
 from typing import Dict, List, Optional
 import os
+import json
 import uuid
 from datetime import datetime, date, time
 
@@ -113,11 +114,11 @@ class DataManager:
                 # 获取或创建老师
                 teacher = session.query(Teacher).filter_by(name=t_name).first()
                 if not teacher:
-                    teacher = Teacher(id=uuid.uuid4(), name=t_name, default_style=item.get("course_name"))
+                    teacher = Teacher(id=uuid.uuid4(), name=t_name, default_style=item.get("style"))
                     session.add(teacher)
                     session.flush() 
-                elif item.get("course_name") and not teacher.default_style:
-                    teacher.default_style = item.get("course_name")
+                elif item.get("style") and not teacher.default_style:
+                    teacher.default_style = item.get("style")
                     session.add(teacher) # 标记为脏数据以便更新
                 
                 # 拆分时间段
@@ -155,7 +156,7 @@ class DataManager:
                     course_date=course_date,
                     start_time=start_t,
                     end_time=end_t,
-                    course_name=item.get("course_name"),
+                    style=item.get("style"),
                     level=item.get("level"),
                     raw_text=item.get("raw_text")
                 )
