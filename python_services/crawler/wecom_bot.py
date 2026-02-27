@@ -62,6 +62,10 @@ app = FastAPI()
 # 初始化 OCR 引擎 (全局复用)
 ocr_engine = build_ocr()
 
+@app.get("/")
+async def root():
+    return {"message": "DancerVibe Crawler Service is running", "docs": "/docs"}
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
