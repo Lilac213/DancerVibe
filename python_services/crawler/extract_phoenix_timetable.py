@@ -28,13 +28,18 @@ BRANCH_MAPPING = {
 def build_ocr() -> PaddleOCR:
     # 默认使用轻量级 Mobile 模型自动下载，适合 Railway 环境
     # 禁用方向分类器以避免模型加载错误
+    # 调整 det_db_thresh 和 det_db_box_thresh 以提高小文本检测率
+    # det_limit_side_len 设置为 2560 以支持高清大图
     return PaddleOCR(
         use_angle_cls=False,
         use_doc_orientation_classify=False,
         use_doc_unwarping=False,
         use_textline_orientation=False,
         device="cpu",
-        lang="ch"
+        lang="ch",
+        det_db_thresh=0.1,  # 降低阈值以检测更淡的文本
+        det_db_box_thresh=0.3, # 降低框阈值
+        det_limit_side_len=2560 # 提高图片处理分辨率上限
     )
 
 
@@ -150,10 +155,27 @@ def extract_global(items: List[Dict], config_studio: str = None, config_branch: 
                         break
 
     month_candidates = [
-        i for i in items if ("月" in i["text"] or "常规" in i["text"])
+        i for i in items if ("月" in i["text"] or "常规" in i["text"] or "Schedule" in i["text"] or "SCHEDULE" in i["text"])
     ]
-    month = month_candidates[0]["text"].strip() if month_candidates else ""
-    
+    if month_candidates:
+        # 优先找包含数字的
+        with_digits = [i for i in month_candidates if any(c.isdigit() for c in i["text"])]
+        if with_digits:
+            month = with_digits[0]["text"].strip()
+        else:
+            month = month_candidates[0]["text"].strip()
+    else:
+        # 如果没有关键词，尝试找底部最中间的文本
+        if items:
+            bottom_items = sorted(items, key=lambda i: i["y_center"], reverse=True)
+            # 取最底部的几个
+            candidates = bottom_items[:3]
+            # 找最接近中间的
+            img_width = max([i["x_max"] for i in items]) if items else 1000
+            center_x = img_width / 2
+            best = min(candidates, key=lambda i: abs(i["x_center"] - center_x))
+            month = best["text"].strip()
+
     return studio or "", branch or "", month
 
 
