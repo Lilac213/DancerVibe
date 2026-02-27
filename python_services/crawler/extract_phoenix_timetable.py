@@ -4,8 +4,16 @@ import numpy as np
 from paddleocr import PaddleOCR
 try:
     from .data_manager import DataManager
+    from .rule_engine import RuleEngine
+    from .entity_resolver import EntityResolver
+    from .confidence_scorer import ConfidenceScorer
+    from .template_parser import TemplateParser
 except ImportError:
     from data_manager import DataManager
+    from rule_engine import RuleEngine
+    from entity_resolver import EntityResolver
+    from confidence_scorer import ConfidenceScorer
+    from template_parser import TemplateParser
 
 # 注意：IMAGE_PATH 现在通常作为参数传入
 DEFAULT_IMAGE_PATH = "tests/data/timetable_phoenix.png"
@@ -18,7 +26,7 @@ REC_CHAR_DICT = "models/ch_PP-OCRv3/dict/timetable_dict.txt"
 
 BRANCH_MAPPING = {
     "新天地": "新天地（复兴店）",
-    "世纪大道": "世纪广场（九六店）",
+    "世纪大道": "世纪大道（九六店）",
     "中山公园": "中山公园（兆丰店）",
     "长寿路": "长寿路（长寿店）"
 }
@@ -391,15 +399,27 @@ def analyze_course_block_with_rules(items: List[Dict], rules: Dict[str, Any]) ->
     }
 
 
-def parse_cell_content(cell_items: List[Dict], template_rules: Optional[Dict[str, Any]] = None) -> List[Dict]:
+def parse_cell_content(cell_items: List[Dict], template_rules: Optional[Dict[str, Any]] = None, session: Any = None) -> List[Dict]:
     """
     解析单元格内容，支持一个格子内有多节课的情况。
+    Enhanced with TemplateParser if session provided.
     """
     if not cell_items:
         return []
     
-    # 按 y 排序
     sorted_items = sorted(cell_items, key=lambda i: i["y_center"])
+
+    # Initialize components if session is provided
+    if session:
+        rule_engine = RuleEngine()
+        resolver = EntityResolver(session)
+        scorer = ConfidenceScorer()
+        parser = TemplateParser(rule_engine, resolver, scorer)
+        
+        lines = [item["text"] for item in sorted_items]
+        # Parse single course block
+        result = parser.parse_cell(lines)
+        return [result]
     
     # 简单聚类：如果 y 距离超过阈值，视为新的一节课
     # 阈值取平均字符高度的 1.5 倍

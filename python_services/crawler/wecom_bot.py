@@ -19,6 +19,11 @@ except ImportError:
     from wechat_crawler import WeChatCrawler
 
 try:
+    from .audit_routes import router as audit_router
+except ImportError:
+    from audit_routes import router as audit_router
+
+try:
     from .extract_phoenix_timetable import (
         build_ocr, 
         run_ocr, 
@@ -58,6 +63,9 @@ if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
 
 app = FastAPI()
+
+# 注册 Audit 路由
+app.include_router(audit_router, prefix="/audit", tags=["audit"])
 
 # 初始化 OCR 引擎 (全局复用)
 ocr_engine = build_ocr()
@@ -139,8 +147,8 @@ async def ocr_image(
                     "weekday": day_label,
                     "time_range": course.get("time_range") or time_label,
                     "teacher": course.get("teacher"),
-                    "course": course.get("course_name"),
-                    "style": course.get("course_name"), # backward compatibility
+                    "course": course.get("course"),
+                    "style": course.get("style"),
                     "level": course.get("level"),
                     "raw_text": course.get("raw_text")
                 })
@@ -212,8 +220,8 @@ async def crawl_article(request: CrawlRequest):
                         "weekday": day_label,
                         "time_range": course.get("time_range") or time_label,
                         "teacher": course.get("teacher"),
-                        "course": course.get("course_name"),
-                        "style": course.get("course_name"), # backward compatibility
+                        "course": course.get("course"),
+                        "style": course.get("style"),
                         "level": course.get("level"),
                         "raw_text": course.get("raw_text")
                     })
