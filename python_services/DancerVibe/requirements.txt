@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+wechatpy
+requests
+paddlepaddle==2.6.1
+paddleocr>=2.7.3
+opencv-python-headless
+numpy
+sqlalchemy
+schedule
+psycopg2-binary  # PostgreSQL 驱动（可选，但在 Railway 上必选）
+cryptography     # WeCom 签名验证需要
+lxml             # wechatpy 解析 XML 需要

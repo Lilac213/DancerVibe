@@ -1,0 +1,8 @@
+
+downloaded_images/
+test_downloaded_images/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+node_modules

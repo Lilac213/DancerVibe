@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+wechatpy==2.0.0a26
+requests
+paddlepaddle>=2.6.2,<3.0.0
+paddleocr==2.7.3
+opencv-python-headless
+numpy<2.0.0
+sqlalchemy
+psycopg2-binary
+cryptography
+beautifulsoup4
+lxml
+apscheduler
+pytest
+pytest-cov
