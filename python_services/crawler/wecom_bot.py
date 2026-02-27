@@ -139,8 +139,8 @@ async def ocr_image(
                     "weekday": day_label,
                     "time_range": course.get("time_range") or time_label,
                     "teacher": course.get("teacher"),
-                    "course": course.get("course"),
-                    "style": course.get("style"),
+                    "course": course.get("course_name"),
+                    "style": course.get("course_name"), # backward compatibility
                     "level": course.get("level"),
                     "raw_text": course.get("raw_text")
                 })
@@ -212,8 +212,8 @@ async def crawl_article(request: CrawlRequest):
                         "weekday": day_label,
                         "time_range": course.get("time_range") or time_label,
                         "teacher": course.get("teacher"),
-                        "course": course.get("course"),
-                        "style": course.get("style"),
+                        "course": course.get("course_name"),
+                        "style": course.get("course_name"), # backward compatibility
                         "level": course.get("level"),
                         "raw_text": course.get("raw_text")
                     })

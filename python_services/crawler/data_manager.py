@@ -113,11 +113,11 @@ class DataManager:
                 # 获取或创建老师
                 teacher = session.query(Teacher).filter_by(name=t_name).first()
                 if not teacher:
-                    teacher = Teacher(id=uuid.uuid4(), name=t_name, default_style=item.get("style"))
+                    teacher = Teacher(id=uuid.uuid4(), name=t_name, default_style=item.get("course_name"))
                     session.add(teacher)
                     session.flush() 
-                elif item.get("style") and not teacher.default_style:
-                    teacher.default_style = item.get("style")
+                elif item.get("course_name") and not teacher.default_style:
+                    teacher.default_style = item.get("course_name")
                     session.add(teacher) # 标记为脏数据以便更新
                 
                 # 拆分时间段
@@ -155,7 +155,7 @@ class DataManager:
                     course_date=course_date,
                     start_time=start_t,
                     end_time=end_t,
-                    style=item.get("style"),
+                    course_name=item.get("course_name"),
                     level=item.get("level"),
                     raw_text=item.get("raw_text")
                 )

@@ -29,6 +29,27 @@ class Teacher(Base):
     
     schedules = relationship("Schedule", back_populates="teacher")
 
+class DictCourse(Base):
+    __tablename__ = 'dict_courses'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(100), unique=True, nullable=False)
+    alias = Column(Text) # JSON array of aliases
+    category = Column(String(50)) # e.g. "JAZZ", "HIPHOP"
+    description = Column(Text)
+
+class DictTeacher(Base):
+    __tablename__ = 'dict_teachers'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(100), unique=True, nullable=False)
+    alias = Column(Text)
+    studio_hint = Column(String(100)) # e.g. "Phoenix"
+
+class DictStyle(Base):
+    __tablename__ = 'dict_styles'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(100), unique=True, nullable=False)
+    alias = Column(Text)
+
 class Schedule(Base):
     __tablename__ = 'schedules'
     
@@ -40,7 +61,7 @@ class Schedule(Base):
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
     
-    style = Column(String(100))
+    course_name = Column(String(100)) # Replaces style, serves as unique course identifier
     level = Column(String(50))
     raw_text = Column(Text)
     
