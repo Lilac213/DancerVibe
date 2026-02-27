@@ -9,24 +9,20 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-const TABLES = {
-  course: 'dict_courses',
-  teacher: 'dict_teachers',
-  style: 'dict_styles'
-};
+const TABLE = 'sys_dicts';
 
-// List dictionary items
-router.get('/:type', requireAdmin, async (req, res) => {
-  const { type } = req.params;
-  const table = TABLES[type];
-  
-  if (!table) return res.status(400).json({ error: 'Invalid dictionary type' });
+// List items by category
+router.get('/:category', requireAdmin, async (req, res) => {
+  const { category } = req.params;
   
   try {
     const { data, error } = await supabase
-      .from(table)
+      .from(TABLE)
       .select('*')
-      .order('updated_at', { ascending: false });
+      .eq('category', category)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('update_time', { ascending: false });
       
     if (error) throw error;
     res.json(data);
@@ -36,31 +32,27 @@ router.get('/:type', requireAdmin, async (req, res) => {
 });
 
 // Create item
-router.post('/:type', requireAdmin, async (req, res) => {
-  const { type } = req.params;
-  const table = TABLES[type];
-  const payload = req.body;
+router.post('/:category', requireAdmin, async (req, res) => {
+  const { category } = req.params;
+  const { key, value, sort_order } = req.body;
   
-  if (!table) return res.status(400).json({ error: 'Invalid dictionary type' });
-  
+  if (!key || !value) return res.status(400).json({ error: 'Key and Value are required' });
+
   try {
     const { data, error } = await supabase
-      .from(table)
-      .insert([payload])
+      .from(TABLE)
+      .insert([{
+        category,
+        key,
+        value,
+        sort_order: sort_order || 0,
+        created_person: 'admin', // TODO: Get real user
+        update_person: 'admin'
+      }])
       .select()
       .single();
       
     if (error) throw error;
-    
-    // Log change
-    await supabase.from('dict_changelog').insert([{
-      dict_type: type,
-      action_type: 'create',
-      record_id: data.id,
-      new_value: data,
-      operator: 'admin'
-    }]);
-    
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -68,94 +60,45 @@ router.post('/:type', requireAdmin, async (req, res) => {
 });
 
 // Update item
-router.put('/:type/:id', requireAdmin, async (req, res) => {
-  const { type, id } = req.params;
-  const table = TABLES[type];
+router.put('/:id', requireAdmin, async (req, res) => {
+  const { id } = req.params;
   const payload = req.body;
   
-  if (!table) return res.status(400).json({ error: 'Invalid dictionary type' });
-  
   try {
-    // Get old value first
-    const { data: oldData } = await supabase
-      .from(table)
-      .select('*')
-      .eq('id', id)
-      .single();
-      
     const { data, error } = await supabase
-      .from(table)
-      .update({ ...payload, updated_at: new Date() })
+      .from(TABLE)
+      .update({ 
+        ...payload, 
+        update_time: new Date(),
+        update_person: 'admin'
+      })
       .eq('id', id)
       .select()
       .single();
       
     if (error) throw error;
-    
-    // Log change
-    await supabase.from('dict_changelog').insert([{
-      dict_type: type,
-      action_type: 'update',
-      record_id: id,
-      old_value: oldData,
-      new_value: data,
-      operator: 'admin'
-    }]);
-    
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Delete item
-router.delete('/:type/:id', requireAdmin, async (req, res) => {
-  const { type, id } = req.params;
-  const table = TABLES[type];
-  
-  if (!table) return res.status(400).json({ error: 'Invalid dictionary type' });
+// Soft Delete item (set is_active = false)
+router.delete('/:id', requireAdmin, async (req, res) => {
+  const { id } = req.params;
   
   try {
-    // Get old value first
-    const { data: oldData } = await supabase
-      .from(table)
-      .select('*')
-      .eq('id', id)
-      .single();
-      
     const { error } = await supabase
-      .from(table)
-      .delete()
+      .from(TABLE)
+      .update({ 
+        is_active: false,
+        update_time: new Date(),
+        update_person: 'admin'
+      })
       .eq('id', id);
       
     if (error) throw error;
-    
-    // Log change
-    await supabase.from('dict_changelog').insert([{
-      dict_type: type,
-      action_type: 'delete',
-      record_id: id,
-      old_value: oldData,
-      operator: 'admin'
-    }]);
-    
     res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Get changelog
-router.get('/changelog/list', requireAdmin, async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('dict_changelog')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(100);
-      
-    if (error) throw error;
-    res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

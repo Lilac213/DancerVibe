@@ -48,38 +48,42 @@ class Schedule(Base):
     teacher = relationship("Teacher", back_populates="schedules")
 
 # Dictionary Models
-class DictCourse(Base):
-    __tablename__ = 'dict_courses'
+class SysDict(Base):
+    __tablename__ = 'sys_dicts'
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(100), nullable=False, unique=True)
-    alias = Column(String(255))
-    difficulty_level = Column(Integer, default=1)
-    description = Column(Text)
+    category = Column(String(50), nullable=False)
+    key = Column(String(100), nullable=False)
+    value = Column(JSONB, nullable=False)
+    
+    sort_order = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+    
+    created_time = Column(DateTime(timezone=True), default=func.now())
+    created_person = Column(String(100))
+    update_time = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
+    update_person = Column(String(100))
+    
+    __table_args__ = (UniqueConstraint('category', 'key', name='uq_sys_dicts_category_key'),)
 
-class DictTeacher(Base):
-    __tablename__ = 'dict_teachers'
+class AuditTask(Base):
+    __tablename__ = 'audit_tasks'
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(100), nullable=False, unique=True)
-    alias = Column(String(255))
-    main_styles = Column(String(255))
-
-class DictStyle(Base):
-    __tablename__ = 'dict_styles'
+    source_type = Column(String(50), nullable=False)
+    source_id = Column(UUID(as_uuid=True), nullable=False)
+    task_type = Column(String(50), nullable=False)
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(100), nullable=False, unique=True)
-    alias = Column(String(255))
-    category = Column(String(50))
-
-class DictChangelog(Base):
-    __tablename__ = 'dict_changelog'
+    status = Column(String(20), default='pending')
+    priority = Column(String(20), default='medium')
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    dict_type = Column(String(50), nullable=False)
-    action_type = Column(String(20), nullable=False)
-    record_id = Column(UUID(as_uuid=True), nullable=False)
-    old_value = Column(JSONB)
-    new_value = Column(JSONB)
-    operator = Column(String(100))
+    original_data = Column(JSONB)
+    fixed_data = Column(JSONB)
+    
+    confidence_score = Column(Float)
+    ai_suggestion = Column(JSONB)
+    
+    assigned_to = Column(String(100))
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    resolved_at = Column(DateTime(timezone=True))
+    resolved_by = Column(String(100))

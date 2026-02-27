@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Col, Form, Input, Modal, Row, Select, Table, Tabs, message, Tag, InputNumber } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, HistoryOutlined } from '@ant-design/icons';
+import { Button, Card, Col, Form, Input, Modal, Row, Select, Table, Tabs, message, Tag, InputNumber, Divider } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { apiUrl } from '../lib/api';
 
@@ -10,8 +10,6 @@ const DictionaryManager: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [changelogOpen, setChangelogOpen] = useState(false);
-  const [changelogs, setChangelogs] = useState<any[]>([]);
   const [form] = Form.useForm();
 
   const token = localStorage.getItem('adminToken');
@@ -36,11 +34,34 @@ const DictionaryManager: React.FC = () => {
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
+      
+      // Construct payload for sys_dicts (category, key, value)
+      const payload = {
+        category: activeTab,
+        key: values.key,
+        sort_order: values.sort_order,
+        value: {
+           // Store other fields in value JSONB
+           label: values.label,
+           alias: values.alias,
+           ...(activeTab === 'course' ? { 
+             difficulty_level: values.difficulty_level,
+             description: values.description 
+           } : {}),
+           ...(activeTab === 'teacher' ? { 
+             main_styles: values.main_styles 
+           } : {}),
+           ...(activeTab === 'style' ? { 
+             category: values.category 
+           } : {})
+        }
+      };
+
       if (editingItem) {
-        await axios.put(apiUrl(`/api/dict/${activeTab}/${editingItem.id}`), values, { headers });
+        await axios.put(apiUrl(`/api/dict/${editingItem.id}`), payload, { headers });
         message.success('Updated successfully');
       } else {
-        await axios.post(apiUrl(`/api/dict/${activeTab}`), values, { headers });
+        await axios.post(apiUrl(`/api/dict/${activeTab}`), payload, { headers });
         message.success('Created successfully');
       }
       setModalOpen(false);
@@ -53,9 +74,10 @@ const DictionaryManager: React.FC = () => {
   const handleDelete = (id: string) => {
     Modal.confirm({
       title: 'Are you sure?',
+      content: 'This will soft delete the item.',
       onOk: async () => {
         try {
-          await axios.delete(apiUrl(`/api/dict/${activeTab}/${id}`), { headers });
+          await axios.delete(apiUrl(`/api/dict/${id}`), { headers });
           message.success('Deleted successfully');
           loadData();
         } catch (err) {
@@ -67,37 +89,41 @@ const DictionaryManager: React.FC = () => {
 
   const openModal = (item?: any) => {
     setEditingItem(item || null);
-    form.setFieldsValue(item || { difficulty_level: 1 });
+    if (item) {
+      // Flatten value for form
+      form.setFieldsValue({
+        key: item.key,
+        sort_order: item.sort_order,
+        label: item.value?.label || item.key, // Fallback
+        alias: item.value?.alias,
+        difficulty_level: item.value?.difficulty_level,
+        description: item.value?.description,
+        main_styles: item.value?.main_styles,
+        category: item.value?.category
+      });
+    } else {
+      form.resetFields();
+      form.setFieldsValue({ sort_order: 0, difficulty_level: 1 });
+    }
     setModalOpen(true);
   };
 
-  const loadChangelogs = async () => {
-    try {
-      const res = await axios.get(apiUrl('/api/dict/changelog/list'), { headers });
-      setChangelogs(res.data || []);
-      setChangelogOpen(true);
-    } catch (err) {
-      message.error('Failed to load logs');
-    }
-  };
-
   const columns = [
-    { title: 'Name', dataIndex: 'name', key: 'name', width: 200 },
-    { title: 'Alias', dataIndex: 'alias', key: 'alias', render: (t: string) => t ? t.split(',').map(a => <Tag key={a}>{a.trim()}</Tag>) : '-' },
+    { title: 'Key', dataIndex: 'key', key: 'key', width: 150, render: (t: string) => <Tag color="blue">{t}</Tag> },
+    { title: 'Label', key: 'label', width: 150, render: (_: any, r: any) => r.value?.label || '-' },
+    { title: 'Alias', key: 'alias', render: (_: any, r: any) => r.value?.alias ? r.value.alias.split(',').map((a: string) => <Tag key={a}>{a.trim()}</Tag>) : '-' },
+    
     ...(activeTab === 'course' ? [
-      { title: 'Level', dataIndex: 'difficulty_level', key: 'level', width: 100, render: (v: number) => '⭐'.repeat(v) },
-      { title: 'Description', dataIndex: 'description', key: 'desc', ellipsis: true }
+      { title: 'Level', key: 'level', width: 100, render: (_: any, r: any) => '⭐'.repeat(r.value?.difficulty_level || 0) },
     ] : []),
-    ...(activeTab === 'teacher' ? [
-      { title: 'Main Styles', dataIndex: 'main_styles', key: 'styles' }
-    ] : []),
-    ...(activeTab === 'style' ? [
-      { title: 'Category', dataIndex: 'category', key: 'cat' }
-    ] : []),
+    
+    { title: 'Updated By', dataIndex: 'update_person', key: 'updater', width: 120, render: (t: string) => <Tag>{t || '-'}</Tag> },
+    { title: 'Updated At', dataIndex: 'update_time', key: 'time', width: 180, render: (t: string) => new Date(t).toLocaleString() },
+    
     {
       title: 'Action',
       key: 'action',
-      width: 150,
+      width: 120,
       render: (_: any, record: any) => (
         <>
           <Button type="link" icon={<EditOutlined />} onClick={() => openModal(record)} />
@@ -111,10 +137,7 @@ const DictionaryManager: React.FC = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
         <h2>Dictionary Management</h2>
-        <div>
-          <Button icon={<HistoryOutlined />} onClick={loadChangelogs} style={{ marginRight: 8 }}>Changelog</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>Add Item</Button>
-        </div>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>Add Item</Button>
       </div>
 
       <Tabs
@@ -123,7 +146,8 @@ const DictionaryManager: React.FC = () => {
         items={[
           { key: 'course', label: 'Courses' },
           { key: 'teacher', label: 'Teachers' },
-          { key: 'style', label: 'Styles' }
+          { key: 'style', label: 'Styles' },
+          { key: 'studio', label: 'Studios' }
         ]}
       />
 
@@ -141,12 +165,28 @@ const DictionaryManager: React.FC = () => {
         onCancel={() => setModalOpen(false)}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Name" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
+          <Row gutter={16}>
+             <Col span={12}>
+                <Form.Item name="key" label="Unique Key" rules={[{ required: true }]}>
+                  <Input placeholder="e.g. JAZZ_FUNK" disabled={!!editingItem} />
+                </Form.Item>
+             </Col>
+             <Col span={12}>
+                <Form.Item name="label" label="Display Name" rules={[{ required: true }]}>
+                  <Input placeholder="e.g. Jazz Funk" />
+                </Form.Item>
+             </Col>
+          </Row>
+
           <Form.Item name="alias" label="Alias (comma separated)">
-            <Input placeholder="e.g. Hip Hop, Hip-Hop" />
+            <Input placeholder="e.g. JF, JazzFunk" />
           </Form.Item>
+          
+          <Form.Item name="sort_order" label="Sort Order">
+            <InputNumber style={{ width: '100%' }} />
+          </Form.Item>
+          
+          <Divider />
           
           {activeTab === 'course' && (
             <>
@@ -178,32 +218,6 @@ const DictionaryManager: React.FC = () => {
             </Form.Item>
           )}
         </Form>
-      </Modal>
-
-      <Modal
-        title="Changelog"
-        open={changelogOpen}
-        onCancel={() => setChangelogOpen(false)}
-        footer={null}
-        width={800}
-      >
-        <Table
-          dataSource={changelogs}
-          rowKey="id"
-          columns={[
-            { title: 'Time', dataIndex: 'created_at', render: (t) => new Date(t).toLocaleString() },
-            { title: 'Type', dataIndex: 'dict_type' },
-            { title: 'Action', dataIndex: 'action_type', render: (t) => <Tag color={t === 'delete' ? 'red' : 'green'}>{t}</Tag> },
-            { title: 'Operator', dataIndex: 'operator' },
-            { title: 'Details', render: (_, r) => (
-              <div style={{ maxHeight: 100, overflow: 'auto', fontSize: 12 }}>
-                {r.action_type === 'update' ? (
-                  <>Old: {JSON.stringify(r.old_value)}<br/>New: {JSON.stringify(r.new_value)}</>
-                ) : JSON.stringify(r.new_value || r.old_value)}
-              </div>
-            )}
-          ]}
-        />
       </Modal>
     </div>
   );
