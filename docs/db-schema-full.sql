@@ -86,3 +86,44 @@ create table if not exists public.schedules (
 );
 
 create index if not exists idx_schedules_studio_date on public.schedules(studio_id, course_date);
+
+-- Dictionary Tables
+create table if not exists public.dict_courses (
+    id uuid primary key default gen_random_uuid(),
+    name varchar(100) not null unique,
+    alias varchar(255), -- Comma separated aliases
+    difficulty_level int default 1, -- 1-5
+    description text,
+    created_at timestamptz default now(),
+    updated_at timestamptz default now()
+);
+
+create table if not exists public.dict_teachers (
+    id uuid primary key default gen_random_uuid(),
+    name varchar(100) not null unique,
+    alias varchar(255),
+    main_styles varchar(255),
+    created_at timestamptz default now(),
+    updated_at timestamptz default now()
+);
+
+create table if not exists public.dict_styles (
+    id uuid primary key default gen_random_uuid(),
+    name varchar(100) not null unique,
+    alias varchar(255),
+    category varchar(50), -- e.g. 'Street', 'Urban', 'Jazz'
+    created_at timestamptz default now(),
+    updated_at timestamptz default now()
+);
+
+-- Changelog for dictionaries
+create table if not exists public.dict_changelog (
+    id uuid primary key default gen_random_uuid(),
+    dict_type varchar(50) not null, -- 'course', 'teacher', 'style'
+    action_type varchar(20) not null, -- 'create', 'update', 'delete'
+    record_id uuid not null,
+    old_value jsonb,
+    new_value jsonb,
+    operator varchar(100), -- user or system
+    created_at timestamptz default now()
+);

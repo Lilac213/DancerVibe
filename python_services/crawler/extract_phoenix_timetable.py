@@ -184,19 +184,11 @@ def find_days(items: List[Dict]) -> Dict[str, float]:
     positions: Dict[str, Dict] = {}
     for it in items:
         t = it["text"].upper()
-        # 优先匹配全称或标准缩写
         for d in day_labels:
             if d in t:
-                # 如果同一天出现多次（比如表头有重复），取 y 坐标最小的（表头）
-                # 或者取 height 最大的（通常表头字体大）
-                # 这里逻辑：优先取最上面的
-                if d not in positions or it["y_center"] < positions[d]["y_center"]:
+                if d not in positions or it["height"] > positions[d]["height"]:
                     positions[d] = it
-    
-    # 按照 x 坐标排序并重新映射到 MON-SUN
-    # 有时候 OCR 识别不到某些天，需要根据相对位置推断
-    # 这里简单处理：识别到的才算
-    return {d: positions[d]["x_center"] for d in day_labels if d in positions}
+    return {d: positions[d]["x_center"] for d in positions}
 
 
 def find_time_rows(items: List[Dict]) -> List[Tuple[str, float]]:
@@ -473,47 +465,70 @@ def analyze_course_block(items: List[Dict]) -> Dict:
         if line_clean:
             clean_lines.append(line_clean)
             
-    # 尝试识别风格和老师
-    # 规则：如果同一块内有多行文本，且符合 [Time] [Course] [Teacher] 的模式（或者 [Course] [Time] [Teacher]）
-    # 对于 Phoenix 模板，通常结构是：
-    # Line 1: Course Name (Style)
-    # Line 2: Teacher Name
-    # 或者是 Teacher 在 Course 上面，具体取决于 OCR 顺序。
-    # 现在的 clean_lines 已经是按 y 排序的吗？不一定，items 是按 y 排序的。
+    # 基于位置的识别策略：通常是 课程 -> 老师 或 老师 -> 课程
+    # Phoenix 模板通常是：
+    # Style (e.g. JAZZ)
+    # Teacher (e.g. 老师名)
+    #
+    # 或者有时同一行： Style Teacher
     
-    # 强制重新按 y 排序 items
-    items.sort(key=lambda i: i["y_center"])
-    sorted_lines = [i["text"].strip() for i in items if "".join([c for c in i["text"] if c not in star_chars]).strip()]
-    
-    if len(sorted_lines) >= 2:
-        # 假设第一行是课程，第二行是老师（Phoenix 常见布局）
-        # 或者反过来，需要结合字典匹配
-        line1 = sorted_lines[0]
-        line2 = sorted_lines[1]
+    if len(clean_lines) >= 2:
+        # 假设第一行是课程/风格，第二行是老师
+        # 这里做一个简单的启发式判断：
+        # 如果第一行匹配到了风格关键词，那么它就是风格，第二行大概率是老师
+        # 如果第一行没有匹配到风格，但第二行匹配到了风格，那么第一行可能是老师（少见）
         
-        # 简单启发式：课程通常包含大写字母且在 styles 列表中
-        is_line1_style = any(s in line1.upper() for s in styles)
-        is_line2_style = any(s in line2.upper() for s in styles)
+        line0 = clean_lines[0]
+        line1 = clean_lines[1]
         
-        if is_line1_style and not is_line2_style:
+        is_style0 = any(s in line0.upper() for s in styles)
+        is_style1 = any(s in line1.upper() for s in styles)
+        
+        if is_style0:
+            found_style = line0
+            found_teacher = " ".join(clean_lines[1:]) # 剩余的都是老师
+        elif is_style1:
+            # 第一行不是风格，第二行是风格 -> 第一行可能是老师？或者第一行是杂讯
+            # 这种情况下比较危险，保守起见，还是认为第一行是 Course
+            # 但 Phoenix 课表通常 Style 在上
             found_style = line1
-            found_teacher = line2
-        elif not is_line1_style and is_line2_style:
-            found_teacher = line1
-            found_style = line2
+            found_teacher = line0
         else:
-            # 默认顺序
-            found_style = line1
-            found_teacher = line2
+            # 都没有匹配到风格，默认第一行 Style，第二行 Teacher
+            found_style = line0
+            found_teacher = " ".join(clean_lines[1:])
             
-    elif len(sorted_lines) == 1:
-        # 只有一行，可能是 Special Class
-        found_style = sorted_lines[0]
-        found_teacher = "TBD"
+    elif len(clean_lines) == 1:
+        line = clean_lines[0]
+        # 只有一行，尝试分割
+        # 如果包含空格，可能 "Style Teacher"
+        if " " in line:
+            parts = line.split(" ")
+            # 检查第一部分是否是风格
+            if any(s in parts[0].upper() for s in styles):
+                found_style = parts[0]
+                found_teacher = " ".join(parts[1:])
+            else:
+                # 默认全都是 Style (因为有些 Style 有空格如 Jazz Funk)
+                # 或者全都是 Teacher?
+                # 优先匹配 Style
+                is_style = any(s in line.upper() for s in styles)
+                if is_style:
+                    found_style = line
+                else:
+                    found_teacher = line
+        else:
+             # 没有空格
+            is_style = any(s in line.upper() for s in styles)
+            if is_style:
+                found_style = line
+            else:
+                found_teacher = line
 
     return {
         "teacher": found_teacher,
-        "course_name": found_style or found_teacher, # 优先用 style 作为课程名，如果为空则用 teacher（可能识别错误）
+        "style": found_style,
+        "course": found_style, # Course usually same as style in this context
         "level": level,
         "raw_text": full_text
     }

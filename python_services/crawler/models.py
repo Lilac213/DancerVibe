@@ -1,5 +1,5 @@
-from sqlalchemy import Column, String, Date, ForeignKey, Text, UniqueConstraint, Time, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, Date, ForeignKey, Text, UniqueConstraint, Time, func, Integer
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship, declarative_base
 import uuid
 
@@ -29,27 +29,6 @@ class Teacher(Base):
     
     schedules = relationship("Schedule", back_populates="teacher")
 
-class DictCourse(Base):
-    __tablename__ = 'dict_courses'
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(100), unique=True, nullable=False)
-    alias = Column(Text) # JSON array of aliases
-    category = Column(String(50)) # e.g. "JAZZ", "HIPHOP"
-    description = Column(Text)
-
-class DictTeacher(Base):
-    __tablename__ = 'dict_teachers'
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(100), unique=True, nullable=False)
-    alias = Column(Text)
-    studio_hint = Column(String(100)) # e.g. "Phoenix"
-
-class DictStyle(Base):
-    __tablename__ = 'dict_styles'
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(100), unique=True, nullable=False)
-    alias = Column(Text)
-
 class Schedule(Base):
     __tablename__ = 'schedules'
     
@@ -61,9 +40,46 @@ class Schedule(Base):
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
     
-    course_name = Column(String(100)) # Replaces style, serves as unique course identifier
+    style = Column(String(100))
     level = Column(String(50))
     raw_text = Column(Text)
     
     studio = relationship("Studio", back_populates="schedules")
     teacher = relationship("Teacher", back_populates="schedules")
+
+# Dictionary Models
+class DictCourse(Base):
+    __tablename__ = 'dict_courses'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(100), nullable=False, unique=True)
+    alias = Column(String(255))
+    difficulty_level = Column(Integer, default=1)
+    description = Column(Text)
+
+class DictTeacher(Base):
+    __tablename__ = 'dict_teachers'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(100), nullable=False, unique=True)
+    alias = Column(String(255))
+    main_styles = Column(String(255))
+
+class DictStyle(Base):
+    __tablename__ = 'dict_styles'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(100), nullable=False, unique=True)
+    alias = Column(String(255))
+    category = Column(String(50))
+
+class DictChangelog(Base):
+    __tablename__ = 'dict_changelog'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    dict_type = Column(String(50), nullable=False)
+    action_type = Column(String(20), nullable=False)
+    record_id = Column(UUID(as_uuid=True), nullable=False)
+    old_value = Column(JSONB)
+    new_value = Column(JSONB)
+    operator = Column(String(100))
