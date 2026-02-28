@@ -14,3 +14,5 @@ lxml
 apscheduler
 pytest
 pytest-cov
+fuzzywuzzy
+python-Levenshtein
