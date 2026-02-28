@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Upload, Button, message, Card, Form, Select, Row, Col, Image, Table, Tag, Space, Alert, Input, InputNumber, Modal } from 'antd';
-import { UploadOutlined, ZoomInOutlined, ZoomOutOutlined, RotateRightOutlined, SaveOutlined, DeleteOutlined } from '@ant-design/icons';
+import { UploadOutlined, ZoomInOutlined, ZoomOutOutlined, RotateRightOutlined, SaveOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import type { UploadProps, UploadFile } from 'antd';
 import axios from 'axios';
 import { apiUrl } from '../lib/api';
