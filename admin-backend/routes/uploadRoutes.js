@@ -1,121 +1,179 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
+const upload = multer({ dest: 'uploads/' });
 const axios = require('axios');
 const fs = require('fs');
 const FormData = require('form-data');
 const { supabase } = require('../supabaseClient');
 
-const loadTemplateByConfig = async (config_id) => {
-  if (!config_id) return null;
-  const { data: cfg } = await supabase
-    .from('crawl_configs')
-    .select('template_name')
-    .eq('id', config_id)
-    .single();
-  if (!cfg?.template_name) return null;
-  const { data } = await supabase
-    .from('templates')
-    .select('*')
-    .eq('name', cfg.template_name)
-    .eq('is_current', true)
-    .single();
-  return data || null;
+const adminToken = process.env.ADMIN_TOKEN || '';
+const requireAdmin = (req, res, next) => {
+  if (!adminToken) return res.status(500).json({ error: 'ADMIN_TOKEN not set' });
+  if (req.headers['x-admin-token'] !== adminToken) return res.status(403).json({ error: 'Forbidden' });
+  next();
 };
 
-// Configure storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = 'uploads';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir);
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
+router.post('/', requireAdmin, upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+  try {
+    const formData = new FormData();
+    formData.append('file', fs.createReadStream(req.file.path));
+    if (req.body.studio) formData.append('studio', req.body.studio);
+    if (req.body.branch) formData.append('branch', req.body.branch);
+    if (req.body.config_id) formData.append('config_id', req.body.config_id);
+
+    const response = await axios.post(`${process.env.PYTHON_SERVICE_URL}/ocr/upload`, formData, {
+      headers: {
+        ...formData.getHeaders(),
+        'x-admin-token': process.env.ADMIN_TOKEN
+      }
+    });
+
+    // Cleanup
+    fs.unlinkSync(req.file.path);
+    res.json(response.data);
+  } catch (err) {
+    if (req.file) fs.unlinkSync(req.file.path);
+    res.status(500).json({ error: err.message });
   }
 });
 
-const upload = multer({ storage: storage });
-
-// Manual upload endpoint
-router.post('/', upload.single('file'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
+router.post('/confirm', requireAdmin, async (req, res) => {
+  const { studio, branch, month, schedules } = req.body;
+  
+  if (!studio || !schedules || !Array.isArray(schedules)) {
+    return res.status(400).json({ error: 'Invalid payload' });
   }
 
   try {
-    const studio = req.body.studio || null;
-    const branch = req.body.branch || null;
-    const config_id = req.body.config_id || null;
-    const templateRules = await loadTemplateByConfig(config_id);
-
-    // 2. Send to Python Service for OCR
-    // We need to send the file itself or the path if on same machine.
-    // Assuming distributed, we send the file as form-data.
-    const formData = new FormData();
-    formData.append('file', fs.createReadStream(req.file.path));
-    if (templateRules) formData.append('template_rules', JSON.stringify(templateRules));
-    if (studio) formData.append('studio', studio);
-    if (branch) formData.append('branch', branch);
-
-    try {
-      const pyResponse = await axios.post(`${process.env.PYTHON_SERVICE_URL}/ocr-image`, formData, {
-        headers: {
-          ...formData.getHeaders()
-        }
-      });
-
-      const ocrFailed = pyResponse.data?.status === 'error';
-      const { data: inserted, error: insertErr } = await supabase
-        .from('crawl_items')
-        .insert([{
-          source_type: 'manual',
-          studio,
-          branch,
-          config_id,
-          wechat_url: null,
-          image_path: req.file.path,
-          ocr_data: pyResponse.data,
-          crawl_status: 'success',
-          ocr_status: ocrFailed ? 'failed' : 'success',
-          need_manual_upload: ocrFailed,
-          error_message: ocrFailed ? pyResponse.data?.message || 'OCR failed' : null,
-        }])
-        .select();
-      if (insertErr) {
-        console.error('Supabase insert crawl_items error:', insertErr.message);
-        return res.status(500).json({ error: 'Failed to create upload record' });
-      }
-
-      res.status(200).json({ success: true, data: inserted });
-    } catch (pyError) {
-      console.error('Python OCR Error:', pyError.message);
-      const msg = pyError?.response?.data?.message || pyError.message || 'OCR processing failed';
-      const { error: insertErr } = await supabase
-        .from('crawl_items')
-        .insert([{
-          source_type: 'manual',
-          studio,
-          branch,
-          config_id,
-          wechat_url: null,
-          image_path: req.file.path,
-          ocr_data: { status: 'error', message: msg },
-          crawl_status: 'success',
-          ocr_status: 'failed',
-          need_manual_upload: true,
-          error_message: msg,
-        }]);
-      if (insertErr) {
-        console.error('Supabase insert crawl_items error:', insertErr.message);
-      }
-      return res.status(500).json({ error: msg });
+    // 1. Get or Create Studio
+    let studioId;
+    const { data: existingStudio } = await supabase
+      .from('studios')
+      .select('id')
+      .eq('name', studio)
+      .eq('branch', branch || 'Main')
+      .single();
+      
+    if (existingStudio) {
+      studioId = existingStudio.id;
+    } else {
+      const { data: newStudio, error: studioError } = await supabase
+        .from('studios')
+        .insert([{ name: studio, branch: branch || 'Main' }])
+        .select()
+        .single();
+      if (studioError) throw studioError;
+      studioId = newStudio.id;
     }
 
+    // 2. Process Schedules & Update Dictionaries
+    const newSchedules = [];
+    const now = new Date();
+    
+    // Batch upsert dictionaries logic
+    // For simplicity, we process sequentially, but batching is better for performance
+    
+    for (const item of schedules) {
+      // 2.1 Update Teacher Dict & Get ID
+      let teacherId = null;
+      if (item.teacher) {
+        // Upsert to teachers table (Entity)
+        const { data: tData } = await supabase
+          .from('teachers')
+          .upsert({ name: item.teacher }, { onConflict: 'name' })
+          .select('id')
+          .single();
+        teacherId = tData.id;
+        
+        // Upsert to sys_dicts (category='teacher')
+        await supabase
+          .from('sys_dicts')
+          .upsert({
+            category: 'teacher',
+            key: item.teacher,
+            value: { label: item.teacher, alias: '', main_styles: item.style },
+            update_time: now,
+            update_person: 'admin'
+          }, { onConflict: 'category,key' });
+      }
+      
+      // 2.2 Update Course/Style Dict
+      if (item.course) {
+        await supabase
+          .from('sys_dicts')
+          .upsert({
+            category: 'course',
+            key: item.course,
+            value: { label: item.course, difficulty_level: item.level || 1, description: '' },
+            update_time: now,
+            update_person: 'admin'
+          }, { onConflict: 'category,key' });
+      }
+      
+      if (item.style) {
+        await supabase
+          .from('sys_dicts')
+          .upsert({
+            category: 'style',
+            key: item.style,
+            value: { label: item.style, category: 'Other' },
+            update_time: now,
+            update_person: 'admin'
+          }, { onConflict: 'category,key' });
+      }
+
+      // 2.3 Prepare Schedule Record
+      // Calculate date from month + weekday if needed, or just store raw for now
+      // Assuming month is "2026-03" and weekday is int (1-7)
+      // For now, we'll create a dummy date or require specific date logic
+      // Since manual upload might not have exact date, we might need a 'course_date' calculation
+      // For this MVP, let's assume we are saving template schedules or need to calculate exact dates
+      
+      // WARNING: 'schedules' table requires 'course_date'. 
+      // If we don't have exact date, we can't insert into 'schedules' directly without logic.
+      // Let's calculate a dummy date for the first occurrence in that month?
+      // Or just loop through the month to generate all dates?
+      
+      // Let's implement a simple date generator:
+      if (month && item.weekday) {
+        const [y, m] = month.split('-').map(Number);
+        const daysInMonth = new Date(y, m, 0).getDate();
+        
+        for (let d = 1; d <= daysInMonth; d++) {
+          const date = new Date(y, m - 1, d);
+          // getDay(): 0=Sun, 1=Mon...6=Sat. 
+          // item.weekday: 1=Mon...7=Sun
+          let jsDay = date.getDay();
+          if (jsDay === 0) jsDay = 7;
+          
+          if (jsDay === item.weekday) {
+             const timeParts = item.time_range ? item.time_range.split('-') : ['00:00', '00:00'];
+             newSchedules.push({
+               studio_id: studioId,
+               teacher_id: teacherId,
+               course_date: date.toISOString().split('T')[0],
+               start_time: timeParts[0],
+               end_time: timeParts[1],
+               style: item.style,
+               level: item.level ? item.level.toString() : '0',
+               raw_text: item.raw_text
+             });
+          }
+        }
+      }
+    }
+
+    if (newSchedules.length > 0) {
+      const { error } = await supabase.from('schedules').insert(newSchedules);
+      if (error) throw error;
+    }
+
+    res.json({ success: true, count: newSchedules.length });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });

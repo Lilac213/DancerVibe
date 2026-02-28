@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Upload, Button, message, Card, Form, Select, Row, Col, Image, Table, Tag, Space, Alert } from 'antd';
-import { UploadOutlined, ZoomInOutlined, ZoomOutOutlined, RotateRightOutlined } from '@ant-design/icons';
+import { Upload, Button, message, Card, Form, Select, Row, Col, Image, Table, Tag, Space, Alert, Input, InputNumber, Modal } from 'antd';
+import { UploadOutlined, ZoomInOutlined, ZoomOutOutlined, RotateRightOutlined, SaveOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { UploadProps, UploadFile } from 'antd';
 import axios from 'axios';
 import { apiUrl } from '../lib/api';
@@ -11,8 +11,9 @@ interface OcrPreviewItem {
   teacher: string;
   course: string;
   style: string;
-  level: string;
+  level: number;
   raw_text: string;
+  confidence?: number;
 }
 
 const ManualUpload: React.FC = () => {
@@ -21,7 +22,12 @@ const ManualUpload: React.FC = () => {
   const [configs, setConfigs] = useState<any[]>([]);
   const [ocrResult, setOcrResult] = useState<any>(null);
   const [previewImage, setPreviewImage] = useState<string>('');
+  const [tableData, setTableData] = useState<OcrPreviewItem[]>([]);
+  const [editingRow, setEditingRow] = useState<OcrPreviewItem | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [form] = Form.useForm();
+  const [uploadForm] = Form.useForm();
+  const [editForm] = Form.useForm();
 
   useEffect(() => {
     const load = async () => {
@@ -39,8 +45,6 @@ const ManualUpload: React.FC = () => {
     if (fileList.length === 0) return;
 
     const formData = new FormData();
-    // Only take the first file for now as backend seems to handle single file per request logic or we need to loop
-    // But UI shows single preview, so let's stick to one file for clarity or handle list
     const file = fileList[0];
     formData.append('file', file as any);
     
@@ -50,9 +54,9 @@ const ManualUpload: React.FC = () => {
     
     setUploading(true);
     setOcrResult(null);
+    setTableData([]);
     
     try {
-      // Create local preview url
       const objectUrl = URL.createObjectURL(file as any);
       setPreviewImage(objectUrl);
 
@@ -60,11 +64,10 @@ const ManualUpload: React.FC = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       
-      // Handle response structure
-      // Expected: { success: true, data: [ { ocr_data: { preview: [], ... }, ... } ] }
       const data = res.data;
       if (data.success && data.data && data.data.length > 0) {
          setOcrResult(data.data[0]);
+         setTableData(data.data[0].ocr_data?.preview || []);
          message.success('Upload & OCR successfully.');
       } else {
          message.warning('Upload success but no OCR data returned.');
@@ -79,14 +82,63 @@ const ManualUpload: React.FC = () => {
     }
   };
 
+  const handleEditRow = (record: OcrPreviewItem) => {
+    setEditingRow(record);
+    editForm.setFieldsValue(record);
+    setEditModalOpen(true);
+  };
+
+  const handleSaveRow = async () => {
+    try {
+      const values = await editForm.validateFields();
+      const newData = [...tableData];
+      const index = newData.findIndex(item => item === editingRow);
+      if (index > -1) {
+        newData[index] = { ...editingRow, ...values, confidence: 1.0 }; // Manually fixed means 100% confidence
+        setTableData(newData);
+        setEditModalOpen(false);
+        setEditingRow(null);
+      }
+    } catch (err) {
+      message.error('Validation failed');
+    }
+  };
+
+  const handleDeleteRow = (record: OcrPreviewItem) => {
+    Modal.confirm({
+      title: 'Delete this row?',
+      onOk: () => {
+        setTableData(prev => prev.filter(item => item !== record));
+      }
+    });
+  };
+
+  const handleConfirmUpload = async () => {
+    if (!ocrResult || tableData.length === 0) return;
+    
+    try {
+      const payload = {
+        studio: ocrResult.studio,
+        branch: ocrResult.branch,
+        month: ocrResult.ocr_data?.month, // Assuming month is in ocr_data
+        schedules: tableData
+      };
+      
+      await axios.post(apiUrl('/api/upload/confirm'), payload);
+      message.success('Schedule data confirmed and saved to database!');
+      // Optionally clear state or redirect
+    } catch (err: any) {
+      message.error(err.response?.data?.error || 'Failed to save data');
+    }
+  };
+
   const uploadProps: UploadProps = {
     onRemove: (file) => {
       setFileList((prev) => prev.filter((item) => item.uid !== file.uid));
       if (fileList.length <= 1) setPreviewImage('');
     },
     beforeUpload: (file) => {
-      setFileList([file]); // Allow only one file for better UX in this split view
-      // Create preview immediately
+      setFileList([file]); 
       const objectUrl = URL.createObjectURL(file);
       setPreviewImage(objectUrl);
       return false;
@@ -117,7 +169,7 @@ const ManualUpload: React.FC = () => {
       render: (text: string, record: OcrPreviewItem) => (
         <div>
           <div style={{ fontWeight: 'bold' }}>{text}</div>
-          {record.level && <div style={{ fontSize: 12, color: '#faad14' }}>{record.level}</div>}
+          {record.level > 0 && <div style={{ fontSize: 12, color: '#faad14' }}>{'⭐'.repeat(record.level)}</div>}
         </div>
       ),
     },
@@ -133,18 +185,38 @@ const ManualUpload: React.FC = () => {
       key: 'style',
       render: (text: string) => (text ? <Tag color="geekblue">{text}</Tag> : '-'),
     },
+    {
+      title: 'Conf.',
+      dataIndex: 'confidence',
+      key: 'conf',
+      width: 70,
+      render: (val: number) => {
+        if (val === undefined) return '-';
+        const color = val > 0.8 ? 'green' : val > 0.5 ? 'orange' : 'red';
+        return <Tag color={color}>{(val * 100).toFixed(0)}%</Tag>;
+      }
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      width: 100,
+      render: (_: any, record: OcrPreviewItem) => (
+        <Space size="small">
+          <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEditRow(record)} />
+          <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => handleDeleteRow(record)} />
+        </Space>
+      ),
+    },
   ];
 
-  // Extract preview data safely
-  const previewData: OcrPreviewItem[] = ocrResult?.ocr_data?.preview || [];
   const studioInfo = ocrResult ? `${ocrResult.studio || ''} ${ocrResult.branch || ''}` : '';
 
   return (
     <div style={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>Manual Upload & OCR Analysis</h2>
+        <h2 style={{ margin: 0 }}>Manual Upload & Correction</h2>
         <Space>
-          <Form layout="inline" form={form} onFinish={handleUpload}>
+          <Form layout="inline" form={uploadForm} onFinish={handleUpload}>
              <Form.Item name="config_id" style={{ width: 200, marginBottom: 0 }}>
               <Select
                 placeholder="Select Config (Optional)"
@@ -156,7 +228,7 @@ const ManualUpload: React.FC = () => {
                 onChange={(val) => {
                   const cfg = configs.find(c => c.id === val);
                   if (cfg) {
-                    form.setFieldsValue({ studio: cfg.studio, branch: cfg.branch });
+                    uploadForm.setFieldsValue({ studio: cfg.studio, branch: cfg.branch });
                   }
                 }}
               />
@@ -169,7 +241,7 @@ const ManualUpload: React.FC = () => {
             </Form.Item>
             <Form.Item style={{ marginBottom: 0 }}>
               <Upload {...uploadProps} showUploadList={false}>
-                <Button icon={<UploadOutlined />}>Select Image</Button>
+                <Button icon={<UploadOutlined />}>Image</Button>
               </Upload>
             </Form.Item>
             <Form.Item style={{ marginBottom: 0 }}>
@@ -220,17 +292,24 @@ const ManualUpload: React.FC = () => {
           <Card 
             title={
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>Analysis Results</span>
-                {studioInfo && <Tag color="blue">{studioInfo}</Tag>}
+                <Space>
+                  <span>Parsed Results</span>
+                  {studioInfo && <Tag color="blue">{studioInfo}</Tag>}
+                </Space>
+                {tableData.length > 0 && (
+                  <Button type="primary" icon={<SaveOutlined />} onClick={handleConfirmUpload}>
+                    Confirm & Save to DB
+                  </Button>
+                )}
               </div>
             }
             style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             bodyStyle={{ flex: 1, overflow: 'auto', padding: 0 }}
           >
             {ocrResult ? (
-              previewData.length > 0 ? (
+              tableData.length > 0 ? (
                 <Table
-                  dataSource={previewData}
+                  dataSource={tableData}
                   columns={columns}
                   rowKey={(record) => `${record.weekday}-${record.time_range}-${record.course}`}
                   pagination={false}
@@ -262,6 +341,54 @@ const ManualUpload: React.FC = () => {
           </Card>
         </Col>
       </Row>
+
+      <Modal
+        title="Edit Schedule"
+        open={editModalOpen}
+        onOk={handleSaveRow}
+        onCancel={() => setEditModalOpen(false)}
+      >
+        <Form form={editForm} layout="vertical">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="weekday" label="Weekday" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="time_range" label="Time" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="course" label="Course" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="teacher" label="Teacher">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="style" label="Style">
+                <Select options={[
+                  { value: 'JAZZ', label: 'JAZZ' },
+                  { value: 'HIPHOP', label: 'HIPHOP' },
+                  { value: 'KPOP', label: 'KPOP' },
+                  { value: 'URBAN', label: 'URBAN' },
+                  { value: 'HEELS', label: 'HEELS' },
+                  { value: 'CHOREOGRAPHY', label: 'CHOREO' },
+                  { value: 'OTHER', label: 'OTHER' }
+                ]} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="level" label="Level (Difficulty)">
+            <InputNumber min={0} max={5} style={{ width: '100%' }} />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
