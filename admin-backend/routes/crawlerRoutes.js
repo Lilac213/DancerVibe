@@ -92,4 +92,42 @@ router.post('/crawl', async (req, res) => {
   }
 });
 
+// Proxy Audit API to Python Service
+router.get('/audit/tasks', async (req, res) => {
+  try {
+    const response = await axios.get(`${process.env.PYTHON_SERVICE_URL}/audit/tasks`, {
+      params: req.query,
+      headers: { 'x-admin-token': process.env.ADMIN_TOKEN }
+    });
+    res.json(response.data);
+  } catch (err) {
+    const status = err.response?.status || 500;
+    res.status(status).json({ error: err.response?.data?.detail || err.message });
+  }
+});
+
+router.get('/audit/tasks/:taskId', async (req, res) => {
+  try {
+    const response = await axios.get(`${process.env.PYTHON_SERVICE_URL}/audit/tasks/${req.params.taskId}`, {
+      headers: { 'x-admin-token': process.env.ADMIN_TOKEN }
+    });
+    res.json(response.data);
+  } catch (err) {
+    const status = err.response?.status || 500;
+    res.status(status).json({ error: err.response?.data?.detail || err.message });
+  }
+});
+
+router.post('/audit/tasks/:taskId/resolve', async (req, res) => {
+  try {
+    const response = await axios.post(`${process.env.PYTHON_SERVICE_URL}/audit/tasks/${req.params.taskId}/resolve`, req.body, {
+      headers: { 'x-admin-token': process.env.ADMIN_TOKEN }
+    });
+    res.json(response.data);
+  } catch (err) {
+    const status = err.response?.status || 500;
+    res.status(status).json({ error: err.response?.data?.detail || err.message });
+  }
+});
+
 module.exports = router;

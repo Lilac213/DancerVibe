@@ -6,6 +6,7 @@ import {
   WechatOutlined,
   SettingOutlined,
   TableOutlined,
+  CheckCircleOutlined
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
@@ -15,6 +16,7 @@ import TemplateEditor from './pages/TemplateEditor';
 import OcrResults from './pages/OcrResults';
 import AdminSystem from './pages/AdminSystem';
 import DictionaryManager from './pages/DictionaryManager';
+import AuditWorkbench from './pages/AuditWorkbench';
 import { useI18n } from './lib/i18n';
 
 const { Header, Content, Footer, Sider } = Layout;
@@ -39,6 +41,11 @@ const App: React.FC = () => {
                 key: 'admin',
                 icon: <SettingOutlined />,
                 label: <Link to="/admin-system">{t('menu.adminSystem')}</Link>,
+              },
+              {
+                key: 'audit',
+                icon: <CheckCircleOutlined />,
+                label: <Link to="/audit">Audit</Link>,
               },
               {
                 key: '1',
@@ -89,6 +96,7 @@ const App: React.FC = () => {
             <div style={{ padding: 24, minHeight: 360, background: colorBgContainer }}>
               <Routes>
                 <Route path="/admin-system" element={<AdminSystem />} />
+                <Route path="/audit" element={<AuditWorkbench />} />
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/crawler" element={<WechatCrawler />} />
                 <Route path="/upload" element={<ManualUpload />} />
