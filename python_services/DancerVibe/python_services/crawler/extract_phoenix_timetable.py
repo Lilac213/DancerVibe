@@ -19,7 +19,7 @@ REC_CHAR_DICT = "models/ch_PP-OCRv3/dict/timetable_dict.txt"
 
 BRANCH_MAPPING = {
     "新天地": "新天地（复兴店）",
-    "世纪大道": "世纪广场（九六店）",
+    "世纪大道": "世纪大道（九六店）",
     "中山公园": "中山公园（兆丰店）",
     "长寿路": "长寿路（长寿店）"
 }

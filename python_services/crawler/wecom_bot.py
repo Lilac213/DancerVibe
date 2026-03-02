@@ -24,6 +24,11 @@ except ImportError:
     from audit_routes import router as audit_router
 
 try:
+    from .template_routes import router as template_router
+except ImportError:
+    from template_routes import router as template_router
+
+try:
     from .extract_phoenix_timetable import (
         build_ocr, 
         run_ocr, 
@@ -66,6 +71,7 @@ app = FastAPI()
 
 # 注册 Audit 路由
 app.include_router(audit_router, prefix="/audit", tags=["audit"])
+app.include_router(template_router, prefix="/templates", tags=["templates"])
 
 # 初始化 OCR 引擎 (全局复用)
 ocr_engine = build_ocr()

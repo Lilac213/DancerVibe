@@ -12,7 +12,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import ManualUpload from './pages/ManualUpload';
 import WechatCrawler from './pages/WechatCrawler';
-import TemplateEditor from './pages/TemplateEditor';
+import TemplateManager from './pages/TemplateManager';
 import OcrResults from './pages/OcrResults';
 import AdminSystem from './pages/AdminSystem';
 import DictionaryManager from './pages/DictionaryManager';
@@ -100,7 +100,7 @@ const App: React.FC = () => {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/crawler" element={<WechatCrawler />} />
                 <Route path="/upload" element={<ManualUpload />} />
-                <Route path="/templates" element={<TemplateEditor />} />
+                <Route path="/templates" element={<TemplateManager />} />
                 <Route path="/ocr-results" element={<OcrResults />} />
                 <Route path="/dictionary" element={<DictionaryManager />} />
               </Routes>
