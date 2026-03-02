@@ -10,7 +10,9 @@
     "cap:init": "npx cap init",
     "cap:add:ios": "npm run build && npx cap add ios",
     "cap:sync": "npm run build && npx cap sync",
-    "cap:open:ios": "npx cap open ios"
+    "cap:open:ios": "npx cap open ios",
+    "railway:build": "cd admin-frontend-vue && npm install && npm run build && cd ../admin-backend && npm install",
+    "railway:start": "cd admin-backend && node server.js"
   },
   "dependencies": {
     "@capacitor/core": "^6.0.0",
