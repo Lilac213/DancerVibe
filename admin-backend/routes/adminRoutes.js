@@ -6,6 +6,15 @@ const { logOperation } = require('../adminLogger');
 const { runConfig } = require('./configsRoutes');
 const fs = require('fs');
 const path = require('path');
+const resolvePublishStatus = (rule, logsMap) => {
+  if (rule.is_current) return { status: 'current', percent: 100 };
+  const log = logsMap.get(rule.id);
+  if (log?.action === 'gray_release_rule') {
+    const percent = Number(log.detail?.percent || 0);
+    return { status: 'gray', percent: Number.isFinite(percent) ? percent : 0 };
+  }
+  return { status: 'history', percent: 0 };
+};
 
 const adminToken = process.env.ADMIN_TOKEN || '';
 const requireAdmin = (req, res, next) => {
@@ -294,7 +303,26 @@ router.get('/rules', requireAdmin, async (req, res) => {
     if (branch) query = query.eq('branch', branch);
     const { data, error } = await query;
     if (error) throw error;
-    res.json(data || []);
+    const rules = data || [];
+    const ruleIds = rules.map((rule) => rule.id);
+    let logsMap = new Map();
+    if (ruleIds.length) {
+      const { data: logs } = await supabase
+        .from('admin_operation_logs')
+        .select('*')
+        .eq('resource_type', 'crawler_rule')
+        .in('resource_id', ruleIds)
+        .order('created_at', { ascending: false });
+      logsMap = new Map();
+      for (const log of logs || []) {
+        if (!logsMap.has(log.resource_id)) logsMap.set(log.resource_id, log);
+      }
+    }
+    const result = rules.map((rule) => {
+      const state = resolvePublishStatus(rule, logsMap);
+      return { ...rule, publish_status: state.status, gray_percent: state.percent };
+    });
+    res.json(result);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -376,6 +404,95 @@ router.post('/rules/:id/set-current', requireAdmin, async (req, res) => {
       detail: { name: current.name }
     });
     res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/rules/:id/gray-release', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { percent } = req.body;
+    const percentValue = Number(percent) || 0;
+    await logOperation({
+      actor: 'admin',
+      action: 'gray_release_rule',
+      resource_type: 'crawler_rule',
+      resource_id: id,
+      detail: { percent: percentValue }
+    });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/rules/test', requireAdmin, async (req, res) => {
+  try {
+    const { ruleId, rule, input } = req.body;
+    let ruleData = rule || null;
+    if (!ruleData && ruleId) {
+      const { data } = await supabase
+        .from('crawler_rules')
+        .select('*')
+        .eq('id', ruleId)
+        .single();
+      ruleData = data || null;
+    }
+    if (!ruleData) return res.status(400).json({ error: 'rule required' });
+    let inputObj = input;
+    if (typeof inputObj === 'string') {
+      inputObj = JSON.parse(inputObj);
+    }
+    if (!inputObj || typeof inputObj !== 'object') {
+      return res.status(400).json({ error: 'input invalid' });
+    }
+    const mapping = ruleData.field_mapping || {};
+    const pythonServiceUrl = process.env.PYTHON_SERVICE_URL || '';
+    if (pythonServiceUrl) {
+      try {
+        const response = await axios.post(`${pythonServiceUrl}/rules/test`, {
+          rule: mapping,
+          input: inputObj
+        }, {
+          headers: { 'x-admin-token': adminToken }
+        });
+        return res.json({ status: 'ok', source: 'python', ...response.data });
+      } catch (e) {
+      }
+    }
+    let matched = true;
+    let missing = [];
+    let checks = [];
+    if (Array.isArray(mapping.nodes)) {
+      checks = mapping.nodes.map((node) => {
+        const actual = inputObj[node.field];
+        let passed = false;
+        if (node.op === 'equals') passed = String(actual ?? '') === String(node.value ?? '');
+        if (node.op === 'contains') passed = String(actual ?? '').includes(String(node.value ?? ''));
+        if (node.op === 'regex') {
+          try {
+            const reg = new RegExp(String(node.value ?? ''));
+            passed = reg.test(String(actual ?? ''));
+          } catch {
+            passed = false;
+          }
+        }
+        return { field: node.field, op: node.op, expected: node.value, actual, passed };
+      });
+      matched = checks.every((item) => item.passed);
+    } else {
+      const keys = Object.keys(mapping);
+      missing = keys.filter((k) => inputObj[k] === undefined);
+      matched = missing.length === 0;
+    }
+    res.json({
+      status: 'ok',
+      matched,
+      missing,
+      checks,
+      rule_id: ruleData.id || null
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

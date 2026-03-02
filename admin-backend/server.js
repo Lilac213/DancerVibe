@@ -9,28 +9,26 @@ const PORT = process.env.PORT || 5000;
 const http = require('http').createServer(app);
 const { Server } = require('socket.io');
 const io = new Server(http, {
+  path: '/socket.io',
+  transports: ['websocket', 'polling'],
+  pingInterval: 20000,
+  pingTimeout: 20000,
   cors: { 
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
       
       const allowedOrigins = [
         process.env.FRONTEND_URL, 
         'https://dancervibe-admin.up.railway.app', 
+        'https://dancervibe-admin-backend.up.railway.app',
         'http://localhost:3000',
         'http://localhost:5173'
       ].filter(Boolean);
 
-      if (allowedOrigins.indexOf(origin) !== -1 || process.env.FRONTEND_URL === '*') {
+      if (allowedOrigins.includes(origin) || process.env.FRONTEND_URL === '*') {
         callback(null, true);
       } else {
-        // Log blocked origin for debugging
-        console.log('Blocked by CORS:', origin);
-        // For development/debugging convenience, we might want to allow it temporarily or check if it matches a pattern
-        // But strictly speaking we should reject.
-        // callback(new Error('Not allowed by CORS'));
-        // Temporarily allow all for debugging deployment issues if strict mode fails
-         callback(null, true);
+        callback(new Error('Not allowed by CORS'));
       }
     },
     credentials: true 
@@ -42,23 +40,20 @@ app.set('trust proxy', 1);
 // Allow CORS from frontend domain
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
     const allowedOrigins = [
       process.env.FRONTEND_URL, 
       'https://dancervibe-admin.up.railway.app', 
+      'https://dancervibe-admin-backend.up.railway.app',
       'http://localhost:3000',
       'http://localhost:5173'
     ].filter(Boolean);
 
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.FRONTEND_URL === '*') {
+    if (allowedOrigins.includes(origin) || process.env.FRONTEND_URL === '*') {
       callback(null, true);
     } else {
-      console.log('Blocked by CORS:', origin);
-      // callback(new Error('Not allowed by CORS'));
-      // Temporarily allow all for debugging deployment issues
-       callback(null, true);
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true
@@ -82,6 +77,7 @@ const templatesRoutes = require('./routes/templatesRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const dictRoutes = require('./routes/dictRoutes');
 const ocrTaskRoutes = require('./routes/ocrTaskRoutes');
+const { swaggerUi, openapiSpec } = require('./openapi');
 
 const path = require('path');
 
@@ -96,21 +92,22 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/dict', dictRoutes);
 app.use('/api/ocr', ocrTaskRoutes);
 
+app.get('/api/openapi.json', (req, res) => {
+  res.json(openapiSpec);
+});
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // Serve static files from the React app
-app.use(express.static(path.join(__dirname, '../admin-frontend/dist')));
+app.use(express.static(path.join(__dirname, '../admin-frontend-vue/dist')));
 
 // The "catchall" handler: for any request that doesn't
 // match one above, send back React's index.html file.
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../admin-frontend/dist/index.html'));
-});
-
-// app.get('/', (req, res) => {
-//   res.send('DancerVibe Admin API is running');
-// });
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.sendFile(path.join(__dirname, '../admin-frontend-vue/dist/index.html'));
 });
 
 io.on('connection', () => {});

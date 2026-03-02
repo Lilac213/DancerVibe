@@ -11,7 +11,8 @@ from wechatpy.crypto import WeChatCrypto
 from wechatpy.exceptions import InvalidSignatureException
 from wechatpy.work import WeChatClient
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+import re
 
 try:
     from .wechat_crawler import WeChatCrawler
@@ -89,6 +90,51 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+class RuleTestRequest(BaseModel):
+    rule: Dict[str, Any]
+    input: Dict[str, Any]
+
+@app.post("/rules/test")
+async def test_rules(payload: RuleTestRequest, request: Request):
+    admin_token = os.environ.get("ADMIN_TOKEN", "")
+    if admin_token and request.headers.get("x-admin-token") != admin_token:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    rule = payload.rule or {}
+    input_obj = payload.input or {}
+    checks = []
+    missing = []
+    matched = True
+    nodes = rule.get("nodes")
+    if isinstance(nodes, list):
+        for node in nodes:
+            field = node.get("field")
+            op = node.get("op")
+            expected = node.get("value")
+            actual = input_obj.get(field)
+            passed = False
+            if op == "equals":
+                passed = str(actual) == str(expected)
+            elif op == "contains":
+                passed = str(expected) in str(actual)
+            elif op == "regex":
+                try:
+                    passed = re.search(str(expected), str(actual)) is not None
+                except Exception:
+                    passed = False
+            checks.append({
+                "field": field,
+                "op": op,
+                "expected": expected,
+                "actual": actual,
+                "passed": passed
+            })
+        matched = all(item.get("passed") for item in checks)
+    else:
+        keys = list(rule.keys())
+        missing = [k for k in keys if k not in input_obj]
+        matched = len(missing) == 0
+    return {"status": "ok", "matched": matched, "missing": missing, "checks": checks}
 
 
 @app.get("/image")

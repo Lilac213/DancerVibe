@@ -22,8 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.vercel
-.env*.local
-/admin-backend/.env
-/admin-backend/uploads
-/admin-backend/coverage
