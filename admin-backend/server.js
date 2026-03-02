@@ -83,6 +83,8 @@ const adminRoutes = require('./routes/adminRoutes');
 const dictRoutes = require('./routes/dictRoutes');
 const ocrTaskRoutes = require('./routes/ocrTaskRoutes');
 
+const path = require('path');
+
 // Routes
 app.use('/api/crawler', crawlerRoutes);
 app.use('/api/upload', uploadRoutes);
@@ -94,9 +96,18 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/dict', dictRoutes);
 app.use('/api/ocr', ocrTaskRoutes);
 
-app.get('/', (req, res) => {
-  res.send('DancerVibe Admin API is running');
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, '../admin-frontend/dist')));
+
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../admin-frontend/dist/index.html'));
 });
+
+// app.get('/', (req, res) => {
+//   res.send('DancerVibe Admin API is running');
+// });
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
