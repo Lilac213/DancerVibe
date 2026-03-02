@@ -81,6 +81,7 @@ const crawlItemsRoutes = require('./routes/crawlItemsRoutes');
 const templatesRoutes = require('./routes/templatesRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const dictRoutes = require('./routes/dictRoutes');
+const ocrTaskRoutes = require('./routes/ocrTaskRoutes');
 
 // Routes
 app.use('/api/crawler', crawlerRoutes);
@@ -91,6 +92,7 @@ app.use('/api/crawl-items', crawlItemsRoutes);
 app.use('/api/templates', templatesRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/dict', dictRoutes);
+app.use('/api/ocr', ocrTaskRoutes);
 
 app.get('/', (req, res) => {
   res.send('DancerVibe Admin API is running');

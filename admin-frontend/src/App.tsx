@@ -6,7 +6,8 @@ import {
   WechatOutlined,
   SettingOutlined,
   TableOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
+  SyncOutlined
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
@@ -14,9 +15,12 @@ import ManualUpload from './pages/ManualUpload';
 import WechatCrawler from './pages/WechatCrawler';
 import TemplateManager from './pages/TemplateManager';
 import OcrResults from './pages/OcrResults';
+import OCRTaskManager from './pages/OCRTaskManager';
 import AdminSystem from './pages/AdminSystem';
 import DictionaryManager from './pages/DictionaryManager';
 import AuditWorkbench from './pages/AuditWorkbench';
+import MappingRuleManager from './pages/MappingRuleManager';
+import QualityMonitor from './pages/QualityMonitor';
 import { useI18n } from './lib/i18n';
 
 const { Header, Content, Footer, Sider } = Layout;
@@ -48,6 +52,11 @@ const App: React.FC = () => {
                 label: <Link to="/audit">Audit</Link>,
               },
               {
+                key: 'ocr-tasks',
+                icon: <CheckCircleOutlined />,
+                label: <Link to="/ocr-tasks">OCR Tasks</Link>,
+              },
+              {
                 key: '1',
                 icon: <DashboardOutlined />,
                 label: <Link to="/">{t('menu.dashboard')}</Link>,
@@ -77,6 +86,16 @@ const App: React.FC = () => {
                 icon: <TableOutlined />,
                 label: <Link to="/dictionary">Dictionary</Link>,
               },
+              {
+                key: 'mapping',
+                icon: <SyncOutlined />,
+                label: <Link to="/mapping-rules">Mapping Rules</Link>,
+              },
+              {
+                key: 'quality',
+                icon: <DashboardOutlined />,
+                label: <Link to="/quality">Quality Monitor</Link>,
+              },
             ]}
           />
         </Sider>
@@ -97,12 +116,15 @@ const App: React.FC = () => {
               <Routes>
                 <Route path="/admin-system" element={<AdminSystem />} />
                 <Route path="/audit" element={<AuditWorkbench />} />
+                <Route path="/ocr-tasks" element={<OCRTaskManager />} />
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/crawler" element={<WechatCrawler />} />
                 <Route path="/upload" element={<ManualUpload />} />
                 <Route path="/templates" element={<TemplateManager />} />
                 <Route path="/ocr-results" element={<OcrResults />} />
                 <Route path="/dictionary" element={<DictionaryManager />} />
+                <Route path="/mapping-rules" element={<MappingRuleManager />} />
+                <Route path="/quality" element={<QualityMonitor />} />
               </Routes>
             </div>
           </Content>

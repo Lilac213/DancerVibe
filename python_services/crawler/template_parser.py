@@ -3,21 +3,24 @@ try:
     from .rule_engine import RuleEngine
     from .entity_resolver import EntityResolver
     from .confidence_scorer import ConfidenceScorer
-    from .llm_service import LLMService
     from .models import AuditTask
 except ImportError:
     from rule_engine import RuleEngine
     from entity_resolver import EntityResolver
     from confidence_scorer import ConfidenceScorer
-    from llm_service import LLMService
     from models import AuditTask
+
+# LLMService is temporarily removed or optional
+class LLMServiceStub:
+    def parse_course_info(self, text):
+        return None
 
 class TemplateParser:
     def __init__(self, rule_engine: RuleEngine, entity_resolver: EntityResolver, confidence_scorer: ConfidenceScorer, session: Any = None):
         self.rules = rule_engine
         self.resolver = entity_resolver
         self.scorer = confidence_scorer
-        self.llm = LLMService()
+        self.llm = LLMServiceStub() # Stubbed for now as llm_service.py was deleted
         self.session = session
 
     def parse_cell(self, raw_lines: List[str], layout_config: Dict = None) -> Dict:

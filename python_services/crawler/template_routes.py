@@ -38,7 +38,7 @@ class TemplateConfig(BaseModel):
     created_at: Optional[datetime]
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class TemplateBase(BaseModel):
     template_code: str
@@ -68,7 +68,7 @@ class TemplateResponse(TemplateBase):
     latest_config: Optional[Dict[str, Any]] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # --- Routes ---
 
@@ -86,7 +86,7 @@ def list_templates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
             .order_by(desc(CrawlerTemplateConfig.created_at))\
             .first()
             
-        t_dict = TemplateResponse.from_orm(t)
+        t_dict = TemplateResponse.from_attributes(t)
         if latest_config:
             t_dict.latest_config = latest_config.config_json
         result.append(t_dict)
@@ -104,7 +104,7 @@ def get_template(template_id: str, db: Session = Depends(get_db)):
         .order_by(desc(CrawlerTemplateConfig.created_at))\
         .first()
         
-    t_dict = TemplateResponse.from_orm(template)
+    t_dict = TemplateResponse.from_attributes(template)
     if latest_config:
         t_dict.latest_config = latest_config.config_json
     return t_dict
@@ -140,7 +140,7 @@ def create_template(template: TemplateCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_template)
     
-    t_dict = TemplateResponse.from_orm(db_template)
+    t_dict = TemplateResponse.from_attributes(db_template)
     t_dict.latest_config = config_json
     return t_dict
 
@@ -163,7 +163,7 @@ def update_template(template_id: str, template_update: TemplateUpdate, db: Sessi
         .order_by(desc(CrawlerTemplateConfig.created_at))\
         .first()
         
-    t_dict = TemplateResponse.from_orm(db_template)
+    t_dict = TemplateResponse.from_attributes(db_template)
     if latest_config:
         t_dict.latest_config = latest_config.config_json
     return t_dict
