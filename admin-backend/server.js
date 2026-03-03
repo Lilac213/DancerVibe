@@ -62,7 +62,16 @@ app.use(express.json());
 
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      "connect-src": ["'self'", "https:", "wss:", "ws:"],
+      "img-src": ["'self'", "data:", "https:", "*"]
+    },
+  },
+}));
 const limiter = rateLimit({
   windowMs: 60 * 1000,
   max: 120
