@@ -3,9 +3,17 @@ import { hasPermission } from '../services/permissions'
 
 export const permissionDirective: Directive = {
   mounted(el, binding) {
-    const code = binding.value as string
-    if (!hasPermission(code)) {
-      el.parentNode?.removeChild(el)
+    const { value: permission } = binding
+    if (permission && !hasPermission(permission)) {
+      el.style.display = 'none'
+    }
+  },
+  updated(el, binding) {
+    const { value: permission } = binding
+    if (permission && !hasPermission(permission)) {
+      el.style.display = 'none'
+    } else {
+      el.style.display = ''
     }
   }
 }

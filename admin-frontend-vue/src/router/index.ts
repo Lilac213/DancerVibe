@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
-  { path: '/', redirect: '/templates' },
+  { path: '/', component: () => import('../pages/Dashboard.vue') },
   { path: '/templates', component: () => import('../pages/TemplateManager.vue') },
   { path: '/ocr-tasks', component: () => import('../pages/OcrTaskManager.vue') },
   { path: '/ocr-results', component: () => import('../pages/OcrResults.vue') },
