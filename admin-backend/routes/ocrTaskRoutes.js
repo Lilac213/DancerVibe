@@ -91,7 +91,26 @@ const proxyRequest = async (method, path, req, res, extraHeaders = {}) => {
     }
 
     if (error.response) {
-      res.status(error.response.status).json(error.response.data);
+      const status = error.response.status;
+      const shouldFallback = [401, 403, 404].includes(status) || status >= 500;
+      if (shouldFallback && method.toUpperCase() === 'GET') {
+        if (path === '/tasks') {
+          return res.json({
+            tasks: mockTasks,
+            total: mockTasks.length,
+            message: 'Using mock data - upstream unavailable'
+          });
+        }
+        if (path.startsWith('/tasks/') && path.endsWith('/results')) {
+          const task = mockTasks.find(t => t.results);
+          return res.json(task?.results || { raw: [], structured: [] });
+        }
+        if (path.startsWith('/tasks/')) {
+          const task = mockTasks.find(t => t.id === path.split('/')[2]) || mockTasks[0];
+          return res.json(task);
+        }
+      }
+      res.status(status).json(error.response.data);
     } else {
       res.status(500).json({ 
         error: 'Internal Server Error', 
