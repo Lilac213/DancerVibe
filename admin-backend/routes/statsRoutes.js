@@ -35,12 +35,6 @@ router.get('/health', (req, res) => {
 // 获取统计摘要 - 带降级处理
 router.get('/summary', async (req, res) => {
   try {
-    // 检查Supabase是否配置
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
-      console.warn('Supabase未配置，使用模拟数据');
-      return res.json(mockStats);
-    }
-
     const { supabase } = require('../supabaseClient');
     
     const today = new Date();
@@ -53,10 +47,7 @@ router.get('/summary', async (req, res) => {
       .gte('course_date', from.toISOString().slice(0, 10))
       .lte('course_date', today.toISOString().slice(0, 10));
 
-    if (error) {
-      console.error('数据库查询错误:', error);
-      return res.json(mockStats); // 降级到模拟数据
-    }
+    if (error) throw error;
 
     const byDay = {};
     const teachers = new Set();
@@ -80,42 +71,51 @@ router.get('/summary', async (req, res) => {
       distinctTeachers7d: teachers.size,
     });
   } catch (e) {
-    console.error('统计接口错误:', e.message);
-    res.json(mockStats); // 降级到模拟数据
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/schedules', async (req, res) => {
+  try {
+    const { studio, teacher, q, from, to } = req.query;
+    const { supabase } = require('../supabaseClient');
+    let query = supabase
+      .from('schedules_view')
+      .select('*');
+    if (from) {
+      query = query.gte('course_date', from);
+    }
+    if (to) {
+      query = query.lte('course_date', to);
+    }
+    if (studio) {
+      query = query.ilike('studio_name', `%${studio}%`);
+    }
+    if (teacher) {
+      query = query.ilike('teacher_name', `%${teacher}%`);
+    }
+    if (q) {
+      query = query.or(`course_name.ilike.%${q}%,style.ilike.%${q}%,teacher_name.ilike.%${q}%`);
+    }
+    query = query.order('course_date', { ascending: false }).order('time_range', { ascending: true });
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json(data || []);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
 // 获取概览数据 - 带降级处理
 router.get('/overview', async (req, res) => {
   try {
-    // 检查Supabase是否配置
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
-      console.warn('Supabase未配置，使用模拟数据');
-      return res.json({
-        totalConfigs: mockStats.totalConfigs,
-        needManual: mockStats.needManual,
-        failConfigs: mockStats.failConfigs,
-        failedItems: mockStats.failedItems,
-        last7Days: mockStats.last7Days,
-      });
-    }
-
     const { supabase } = require('../supabaseClient');
     
     const { data: configs, error: cfgErr } = await supabase
       .from('crawl_configs')
       .select('id, need_manual_upload, fail_count');
       
-    if (cfgErr) {
-      console.error('配置查询错误:', cfgErr);
-      return res.json({
-        totalConfigs: mockStats.totalConfigs,
-        needManual: mockStats.needManual,
-        failConfigs: mockStats.failConfigs,
-        failedItems: mockStats.failedItems,
-        last7Days: mockStats.last7Days,
-      });
-    }
+    if (cfgErr) throw cfgErr;
 
     const totalConfigs = configs?.length || 0;
     const needManual = (configs || []).filter(c => c.need_manual_upload).length;
@@ -131,9 +131,7 @@ router.get('/overview', async (req, res) => {
       .gte('created_at', from.toISOString())
       .lte('created_at', today.toISOString());
 
-    if (itemsErr) {
-      console.error('项目查询错误:', itemsErr);
-    }
+    if (itemsErr) throw itemsErr;
 
     const byDay = {};
     let failedItems = 0;
@@ -159,14 +157,113 @@ router.get('/overview', async (req, res) => {
       last7Days: days,
     });
   } catch (e) {
-    console.error('概览接口错误:', e.message);
-    res.json({
-      totalConfigs: mockStats.totalConfigs,
-      needManual: mockStats.needManual,
-      failConfigs: mockStats.failConfigs,
-      failedItems: mockStats.failedItems,
-      last7Days: mockStats.last7Days,
-    });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/studios', async (req, res) => {
+  try {
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+      return res.json(new Array(mockStats.totalConfigs).fill(0).map((_, i) => ({ id: `mock-${i + 1}` })));
+    }
+    const { supabase } = require('../supabaseClient');
+    const { data, error } = await supabase.from('crawl_configs').select('id');
+    if (error) {
+      return res.json(new Array(mockStats.totalConfigs).fill(0).map((_, i) => ({ id: `mock-${i + 1}` })));
+    }
+    res.json(data || []);
+  } catch (e) {
+    res.json(new Array(mockStats.totalConfigs).fill(0).map((_, i) => ({ id: `mock-${i + 1}` })));
+  }
+});
+
+router.get('/today-courses', async (req, res) => {
+  try {
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+      return res.json({ count: mockStats.last7Days[mockStats.last7Days.length - 1]?.count || 0 });
+    }
+    const { supabase } = require('../supabaseClient');
+    const today = new Date().toISOString().slice(0, 10);
+    const { data, error } = await supabase
+      .from('schedules')
+      .select('id')
+      .eq('course_date', today);
+    if (error) {
+      return res.json({ count: mockStats.last7Days[mockStats.last7Days.length - 1]?.count || 0 });
+    }
+    res.json({ count: (data || []).length });
+  } catch (e) {
+    res.json({ count: mockStats.last7Days[mockStats.last7Days.length - 1]?.count || 0 });
+  }
+});
+
+router.get('/recent-activity', async (req, res) => {
+  try {
+    const now = new Date();
+    const fallback = [
+      {
+        id: 'activity-1',
+        type: 'template',
+        title: '模板数据同步完成',
+        timestamp: new Date(now.getTime() - 5 * 60 * 1000).toISOString(),
+        status: 'success',
+        statusText: '成功'
+      },
+      {
+        id: 'activity-2',
+        type: 'ocr',
+        title: 'OCR任务队列刷新',
+        timestamp: new Date(now.getTime() - 15 * 60 * 1000).toISOString(),
+        status: 'warning',
+        statusText: '处理中'
+      },
+      {
+        id: 'activity-3',
+        type: 'audit',
+        title: '审核任务已更新',
+        timestamp: new Date(now.getTime() - 30 * 60 * 1000).toISOString(),
+        status: 'success',
+        statusText: '成功'
+      }
+    ];
+
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+      return res.json(fallback);
+    }
+
+    const { supabase } = require('../supabaseClient');
+    const { data, error } = await supabase
+      .from('crawl_items')
+      .select('id, created_at, ocr_status')
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (error) {
+      return res.json(fallback);
+    }
+
+    const mapped = (data || []).map((item) => ({
+      id: `item-${item.id}`,
+      type: 'ocr',
+      title: `OCR任务 ${item.id}`,
+      timestamp: item.created_at,
+      status: item.ocr_status === 'failed' ? 'error' : (item.ocr_status === 'pending' ? 'warning' : 'success'),
+      statusText: item.ocr_status === 'failed' ? '失败' : (item.ocr_status === 'pending' ? '处理中' : '成功')
+    }));
+
+    res.json(mapped.length ? mapped : fallback);
+  } catch (e) {
+    const now = new Date();
+    res.json([
+      {
+        id: 'activity-1',
+        type: 'template',
+        title: '模板数据同步完成',
+        timestamp: new Date(now.getTime() - 5 * 60 * 1000).toISOString(),
+        status: 'success',
+        statusText: '成功'
+      }
+    ]);
   }
 });
 

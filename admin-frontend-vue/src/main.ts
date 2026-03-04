@@ -4,6 +4,7 @@ import { router } from './router'
 import { i18n } from './i18n'
 import App from './App.vue'
 import './style.css'
+import 'ant-design-vue/dist/antd.css'
 
 // 引入 Ant Design Vue
 import Antd from 'ant-design-vue'

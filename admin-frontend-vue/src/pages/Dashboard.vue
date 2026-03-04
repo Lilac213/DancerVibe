@@ -216,46 +216,88 @@ const quickActions = computed<QuickAction[]>(() => [
 
 const fetchStats = async () => {
   try {
-    const [studiosRes, coursesRes, tasksRes] = await Promise.all([
-      http.get('/api/stats/studios'),
-      http.get('/api/stats/today-courses'),
+    const [summaryRes, configsRes, tasksRes] = await Promise.allSettled([
+      http.get('/api/stats/summary'),
+      http.get('/api/configs'),
       http.get('/api/ocr/tasks', { params: { status: 'pending' } })
     ])
-    
+
+    const summary = summaryRes.status === 'fulfilled' ? summaryRes.value.data : null
+    const configs = configsRes.status === 'fulfilled' ? (configsRes.value.data || []) : []
+    const tasksData = tasksRes.status === 'fulfilled' ? tasksRes.value.data : []
+    const tasks = Array.isArray(tasksData) ? tasksData : (tasksData?.tasks || [])
+    const todayCourses = summary?.last7Days?.[summary.last7Days.length - 1]?.count || 0
+
     stats.value = {
-      totalStudios: studiosRes.data?.length || 0,
-      todayCourses: coursesRes.data?.count || 0,
-      activeTasks: tasksRes.data?.length || 0
+      totalStudios: configs.length || 0,
+      todayCourses,
+      activeTasks: tasks.length || 0
     }
   } catch (error) {
-    console.error('Failed to fetch stats:', error)
+    stats.value = {
+      totalStudios: 0,
+      todayCourses: 0,
+      activeTasks: 0
+    }
   }
 }
 
 const fetchRecentActivity = async () => {
   try {
-    const response = await http.get('/api/stats/recent-activity')
-    recentActivity.value = response.data || []
+    const [tasksRes, templatesRes] = await Promise.allSettled([
+      http.get('/api/ocr/tasks'),
+      http.get('/api/templates')
+    ])
+    const tasksData = tasksRes.status === 'fulfilled' ? tasksRes.value.data : []
+    const templatesData = templatesRes.status === 'fulfilled' ? templatesRes.value.data : []
+    const tasks = Array.isArray(tasksData) ? tasksData : (tasksData?.tasks || [])
+    const templates = Array.isArray(templatesData) ? templatesData : []
+
+    const taskActivities: Activity[] = tasks.slice(0, 3).map((task: any) => ({
+      id: `ocr-${task.id}`,
+      type: 'ocr',
+      title: `OCR任务 ${task.id} - ${task.status || 'pending'}`,
+      timestamp: task.created_at || new Date().toISOString(),
+      status: task.status === 'failed' ? 'error' : (task.status === 'processing' ? 'warning' : 'success'),
+      statusText: task.status === 'failed' ? '失败' : (task.status === 'processing' ? '处理中' : '完成')
+    }))
+
+    const templateActivities: Activity[] = templates.slice(0, 2).map((template: any) => ({
+      id: `tpl-${template.id}`,
+      type: 'template',
+      title: `模板 ${template.template_name || template.name || template.id} 已加载`,
+      timestamp: template.updated_at || template.created_at || new Date().toISOString(),
+      status: 'success',
+      statusText: '正常'
+    }))
+
+    recentActivity.value = [...taskActivities, ...templateActivities]
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 5)
   } catch (error) {
-    console.error('Failed to fetch recent activity:', error)
+    recentActivity.value = []
   }
 }
 
 const checkSystemStatus = async () => {
   try {
     const [dbRes, ocrRes, crawlerRes] = await Promise.allSettled([
-      http.get('/health'),
+      http.get('/api/stats/health'),
       http.get('/api/ocr/health'),
-      http.get('/api/crawler/health')
+      http.get('/api/configs')
     ])
-    
+
     systemStatus.value = {
       database: dbRes.status === 'fulfilled',
       ocrService: ocrRes.status === 'fulfilled',
       crawlerService: crawlerRes.status === 'fulfilled'
     }
   } catch (error) {
-    console.error('Failed to check system status:', error)
+    systemStatus.value = {
+      database: false,
+      ocrService: false,
+      crawlerService: false
+    }
   }
 }
 
@@ -291,21 +333,23 @@ const getBadgeStatus = (status: string) => {
   return statusMap[status] || 'default'
 }
 
+let interval: ReturnType<typeof setInterval> | null = null
+
 onMounted(() => {
   fetchStats()
   fetchRecentActivity()
   checkSystemStatus()
   
-  // 定期刷新数据
-  const interval = setInterval(() => {
+  interval = setInterval(() => {
     fetchStats()
     fetchRecentActivity()
   }, 30000)
-  
-  // 清理定时器
-  onUnmounted(() => {
+})
+
+onUnmounted(() => {
+  if (interval) {
     clearInterval(interval)
-  })
+  }
 })
 </script>
 
