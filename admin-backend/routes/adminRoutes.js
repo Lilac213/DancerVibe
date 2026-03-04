@@ -247,7 +247,7 @@ router.get('/parsed', requireAdmin, async (req, res) => {
   }
 });
 
-router.get('/stats', requireAdmin, async (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
     const { month } = req.query;
     const { data: studios } = await supabase.from('studios').select('id, name, branch');
@@ -294,7 +294,7 @@ router.get('/logs', requireAdmin, async (req, res) => {
   }
 });
 
-router.get('/rules', requireAdmin, async (req, res) => {
+router.get('/rules', async (req, res) => {
   try {
     const { name, studio, branch } = req.query;
     let query = supabase.from('crawler_rules').select('*').order('created_at', { ascending: false });

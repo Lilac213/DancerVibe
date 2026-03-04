@@ -12,7 +12,7 @@ const requireAdmin = (req, res, next) => {
 const TABLE = 'sys_dicts';
 
 // List items by category
-router.get('/:category', requireAdmin, async (req, res) => {
+router.get('/:category', async (req, res) => {
   const { category } = req.params;
   
   try {
