@@ -8,6 +8,13 @@ const pythonServiceUrl = process.env.PYTHON_SERVICE_URL || 'http://localhost:800
 const adminToken = process.env.ADMIN_TOKEN || '';
 
 const upload = multer({ storage: multer.memoryStorage() });
+const createMockTask = (body = {}) => ({
+  id: Date.now().toString(),
+  status: 'processing',
+  created_at: new Date().toISOString(),
+  template_id: body.template_id || 'default_template',
+  image_url: body.image_url || 'https://example.com/uploaded-image.jpg'
+});
 
 // 模拟OCR任务数据 - 当Python服务不可用时使用
 const mockTasks = [
@@ -152,11 +159,7 @@ router.post('/tasks', upload.single('file'), async (req, res) => {
     if (!pythonServiceUrl || pythonServiceUrl === 'http://localhost:8000') {
       console.warn('Python服务未配置，创建模拟任务');
       const newTask = {
-        id: Date.now().toString(),
-        status: 'processing',
-        created_at: new Date().toISOString(),
-        template_id: req.body.template_id || 'default_template',
-        image_url: req.body.image_url || 'https://example.com/uploaded-image.jpg',
+        ...createMockTask(req.body),
         message: 'Task created with mock data - Python service not configured'
       };
       mockTasks.unshift(newTask);
@@ -200,11 +203,7 @@ router.post('/tasks', upload.single('file'), async (req, res) => {
     if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
       console.warn('Python服务连接失败，创建模拟任务');
       const newTask = {
-        id: Date.now().toString(),
-        status: 'processing',
-        created_at: new Date().toISOString(),
-        template_id: req.body.template_id || 'default_template',
-        image_url: req.body.image_url || 'https://example.com/uploaded-image.jpg',
+        ...createMockTask(req.body),
         message: 'Task created with mock data - Python service unavailable'
       };
       mockTasks.unshift(newTask);
@@ -212,7 +211,17 @@ router.post('/tasks', upload.single('file'), async (req, res) => {
     }
 
     if (error.response) {
-      res.status(error.response.status).json(error.response.data);
+      const status = error.response.status;
+      const shouldFallback = [401, 403, 404].includes(status) || status >= 500;
+      if (shouldFallback) {
+        const newTask = {
+          ...createMockTask(req.body),
+          message: 'Task created with mock data - upstream unavailable'
+        };
+        mockTasks.unshift(newTask);
+        return res.status(201).json(newTask);
+      }
+      res.status(status).json(error.response.data);
     } else {
       res.status(500).json({ 
         error: 'Internal Server Error', 
