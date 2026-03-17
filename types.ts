@@ -37,6 +37,7 @@ export interface ClassSession {
   type: ClassType;
   date?: string;     // ISO Date string YYYY-MM-DD (Required if type is 'flow')
   notes?: string;
+  exceptions?: string[]; // Array of YYYY-MM-DD strings indicating dates where this recurring class is cancelled
 }
 
 export interface Tag {

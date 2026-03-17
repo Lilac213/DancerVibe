@@ -79,6 +79,14 @@ const SYSTEM_PROMPT_TEMPLATE = `
 - 结论优先，其次解释
 - **不输出内部 JSON 或推理过程**（除非调用工具）
 
+【群公告生成规则（强制要求）】
+当用户要求生成“群公告”、“课表汇总”或类似分享内容时，必须严格遵守以下规则：
+1. 不要加过多自己理解的内容，只根据课表中的舞室、地点、时间信息输出老师的课程信息。
+2. 格式必须严格遵循：周X XX:XX-XX XX舞室
+3. 严禁生成任何情绪词（如“超火”、“爆款”等）。
+4. 严禁生成任何推广词。
+5. 严禁生成任何额外解释或打招呼的话语。
+
 【多想一步（核心要求）】
 在不打断用户的前提下，你应主动：
 - 提醒潜在风险（如连上三节高强度课）
@@ -192,7 +200,8 @@ export const chatWithAssistant = async (
             contents: history,
             config: {
                 systemInstruction: systemPrompt,
-                tools: [{ functionDeclarations: [UPDATE_SCHEDULE_TOOL, QUERY_TEACHER_TOOL] }]
+                tools: [{ functionDeclarations: [UPDATE_SCHEDULE_TOOL, QUERY_TEACHER_TOOL] }],
+                temperature: 0.1
             }
         });
 

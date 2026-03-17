@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, X, Send, Bot, User as UserIcon, Loader2, Check, ArrowRight, Calendar, Clock, Mic, Square } from 'lucide-react';
+import { Sparkles, X, Send, Bot, User as UserIcon, Loader2, Check, ArrowRight, Calendar, Clock, Mic, Square, Image as ImageIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { chatWithAssistant, ChatMessage, transcribeAudio } from '../services/geminiService';
 import { ClassSession, UserRole, User } from '../types';
 import { searchPublicClasses } from '../services/scheduleService';
+import PosterGenerator from './PosterGenerator';
 
 interface ProposedClassSession extends Partial<ClassSession> {
     action?: 'add' | 'remove';
@@ -33,6 +34,7 @@ const AiScheduleAssistant: React.FC<AiScheduleAssistantProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [pendingTool, setPendingTool] = useState<ToolProposal | null>(null);
+  const [isPosterOpen, setIsPosterOpen] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -220,7 +222,15 @@ const AiScheduleAssistant: React.FC<AiScheduleAssistantProps> = ({
                 </div>
               </div>
            </div>
-           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-black transition-colors"><X size={20} /></button>
+           <div className="flex gap-2">
+               <button 
+                  onClick={() => setIsPosterOpen(true)}
+                  className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-full transition-colors flex items-center gap-1 text-xs font-bold"
+               >
+                   <ImageIcon size={16} /> 海报
+               </button>
+               <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-black transition-colors"><X size={20} /></button>
+           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-gray-50 scrollbar-thin scrollbar-thumb-gray-200">
@@ -290,6 +300,15 @@ const AiScheduleAssistant: React.FC<AiScheduleAssistantProps> = ({
             </div>
         </div>
       </div>
+      
+      {user && (
+        <PosterGenerator 
+            isOpen={isPosterOpen}
+            onClose={() => setIsPosterOpen(false)}
+            classes={existingClasses}
+            user={user}
+        />
+      )}
     </div>
   );
 };

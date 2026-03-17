@@ -311,13 +311,33 @@ const ClassModal: React.FC<ClassModalProps> = ({ isOpen, onClose, onSave, onDele
 
           <div className="pt-2 flex gap-3">
             {initialData?.id && onDelete && (
-                <button
-                type="button"
-                onClick={() => onDelete(initialData.id!)}
-                className="flex-1 py-4 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
-                >
-                删除
-                </button>
+                <div className="flex-1 flex gap-2">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (formData.type === 'fixed') {
+                                const confirmSingle = window.confirm("要仅删除本周的这节课吗？点击「取消」将删除所有该常规课。");
+                                if (confirmSingle) {
+                                    const dateStr = format(targetDate, 'yyyy-MM-dd');
+                                    const updatedClass = {
+                                        ...initialData,
+                                        exceptions: [...(initialData.exceptions || []), dateStr]
+                                    } as ClassSession;
+                                    onSave(updatedClass);
+                                } else {
+                                    if (window.confirm("确定要删除该常规课的所有排课吗？")) {
+                                        onDelete(initialData.id!);
+                                    }
+                                }
+                            } else {
+                                onDelete(initialData.id!);
+                            }
+                        }}
+                        className="flex-1 py-4 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
+                    >
+                        删除
+                    </button>
+                </div>
             )}
             
             {/* Go to Record Button (Only in Edit Mode and if provided) */}

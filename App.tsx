@@ -14,6 +14,7 @@ import { ProfileView } from './components/ProfileView';
 import { PublicProfileView } from './components/PublicProfileView';
 import { ClassSession, User, Tag, DanceLog } from './types';
 import { getClassesForDate, getWeekDays, getMonthDays } from './utils/dateUtils';
+import { getTeacherColor } from './utils/colorUtils';
 import { generateSummary, generateEntityTags } from './services/geminiService';
 import { initSupabase, fetchClasses, upsertClass, deleteClass as deleteClassDb, batchUpsertClasses, batchDeleteClasses, checkConnection, fetchTags, batchUpsertTags } from './services/scheduleService';
 import { saveVideo } from './services/videoStorage';
@@ -503,7 +504,7 @@ const App: React.FC = () => {
                                         {dayClasses.slice(0, 4).map((c, i) => (
                                             <div 
                                                 key={i} 
-                                                className={`w-2 h-2 rounded-full ${c.type === 'flow' ? 'bg-black' : 'bg-red-500'}`} 
+                                                className={`w-2 h-2 rounded-full ${getTeacherColor(c.teacher)}`} 
                                             />
                                         ))}
                                         {dayClasses.length > 4 && <div className="text-[9px] text-gray-400 font-bold">+</div>}

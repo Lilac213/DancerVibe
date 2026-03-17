@@ -19,6 +19,7 @@ interface GenerateContentConfig {
   tools?: any[];
   responseMimeType?: string;
   responseSchema?: any;
+  temperature?: number;
 }
 
 interface GenerateContentRequest {
@@ -71,6 +72,10 @@ export const generateContent = async (
       model: 'qwen-plus',
       messages
     };
+    
+    if (config?.temperature !== undefined) {
+      qwenBody.temperature = config.temperature;
+    }
     
     if (config?.responseMimeType === 'application/json') {
       qwenBody.response_format = { type: 'json_object' };

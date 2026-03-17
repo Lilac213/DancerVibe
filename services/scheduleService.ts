@@ -55,7 +55,8 @@ const mapToDb = (cls: ClassSession, userName: string) => ({
     teacher: cls.teacher,
     song: cls.song,
     type: cls.type,
-    date: cls.date || null
+    date: cls.date || null,
+    exceptions: cls.exceptions || []
 });
 
 const normalizeTime = (t: string) => {
@@ -77,6 +78,7 @@ const mapFromDb = (row: any): ClassSession => ({
     song: row.song,
     type: row.type as 'fixed' | 'flow',
     date: row.date || undefined,
+    exceptions: row.exceptions || []
 });
 
 export const fetchClasses = async (user: User): Promise<ClassSession[]> => {

@@ -58,7 +58,11 @@ export const getClassesForDate = (date: Date, allClasses: ClassSession[]) => {
 
   // Separate Flow and Fixed classes relevant to this day
   const relevantFlow = allClasses.filter(c => c.type === 'flow' && c.date === dateString);
-  const relevantFixed = allClasses.filter(c => c.type === 'fixed' && c.dayOfWeek === dayIndex);
+  const relevantFixed = allClasses.filter(c => 
+    c.type === 'fixed' && 
+    c.dayOfWeek === dayIndex && 
+    (!c.exceptions || !c.exceptions.includes(dateString))
+  );
 
   // Logic: If a Fixed class overlaps significantly with a Flow class on the same day, 
   // we assume the Flow class is a specific override (e.g., substituting song or teacher) and hide the Fixed class.

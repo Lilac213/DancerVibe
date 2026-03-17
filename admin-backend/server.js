@@ -86,6 +86,7 @@ const templatesRoutes = require('./routes/templatesRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const dictRoutes = require('./routes/dictRoutes');
 const ocrTaskRoutes = require('./routes/ocrTaskRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 const { swaggerUi, openapiSpec } = require('./openapi');
 
 const path = require('path');
@@ -100,6 +101,7 @@ app.use('/api/templates', templatesRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/dict', dictRoutes);
 app.use('/api/ocr', ocrTaskRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.get('/api/openapi.json', (req, res) => {
   res.json(openapiSpec);

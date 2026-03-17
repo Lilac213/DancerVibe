@@ -3,6 +3,7 @@ import { format, isSameDay } from 'date-fns';
 import { MapPin, Clock } from 'lucide-react';
 import { ClassSession } from '../types';
 import { getClassesForDate } from '../utils/dateUtils';
+import { getTeacherColor } from '../utils/colorUtils';
 
 interface WeekViewProps {
   weekDays: Date[];
@@ -142,6 +143,7 @@ export const WeekView: React.FC<WeekViewProps> = ({ weekDays = [], classes = [],
                         {dayClasses.map((cls) => {
                             const style = getPositionStyle(cls.startTime, cls.endTime);
                             const isFlow = cls.type === 'flow';
+                            const teacherColorClass = getTeacherColor(cls.teacher);
                             
                             return (
                                 <div
@@ -151,11 +153,7 @@ export const WeekView: React.FC<WeekViewProps> = ({ weekDays = [], classes = [],
                                         onEditClass(cls, day);
                                     }}
                                     style={style}
-                                    className={`absolute inset-x-1 p-2 rounded-xl border overflow-hidden z-20 cursor-pointer transition-all hover:scale-[1.02] hover:z-30 hover:shadow-xl flex flex-col group ${
-                                        isFlow 
-                                        ? 'bg-black border-black text-white shadow-lg shadow-black/20' 
-                                        : 'bg-red-600 border-red-600 text-white shadow-lg shadow-red-600/20'
-                                    }`}
+                                    className={`absolute inset-x-1 p-2 rounded-xl border overflow-hidden z-20 cursor-pointer transition-all hover:scale-[1.02] hover:z-30 hover:shadow-xl flex flex-col group ${teacherColorClass} border-transparent text-white shadow-lg`}
                                 >
                                     <div className="font-bold leading-tight truncate text-xs sm:text-sm mb-0.5">
                                         {cls.song || '常规课'}
