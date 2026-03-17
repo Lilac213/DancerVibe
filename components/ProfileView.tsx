@@ -376,8 +376,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
   // --- MAIN VIEW ---
   if (currentView === 'account') return <AccountView />;
-  if (currentView === 'edit_profile') return <ProfileEditView />;
-  if (currentView === 'privacy') return <PrivacyView />;
+  /*
+    “个人主页展示”与“隐私设置”页面临时隐藏（后续需要重新开发时恢复）
+    if (currentView === 'edit_profile') return <ProfileEditView />;
+    if (currentView === 'privacy') return <PrivacyView />;
+  */
 
   return (
     <div className="h-full bg-gray-50 flex flex-col overflow-y-auto pb-24 animate-in fade-in duration-300">
@@ -395,12 +398,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <div className="flex-1 min-w-0">
             <div className="flex justify-between items-start">
                 <h1 className="text-2xl font-black text-gray-900 truncate">{profileData.name}</h1>
-                <button 
-                    onClick={() => setCurrentView('edit_profile')}
-                    className="flex items-center gap-1.5 text-[10px] font-bold bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors shrink-0"
-                >
-                    <Edit3 size={12} /> 编辑主页
-                </button>
+                {/*
+                  个人主页展示入口临时隐藏（后续需要重新开发时恢复）
+                */}
             </div>
             {profileData.bio && (
                 <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">{profileData.bio}</p>
@@ -551,27 +551,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                    <ChevronRight size={18} className="text-gray-300" />
                </button>
                
-               <button 
-                    onClick={() => setCurrentView('edit_profile')}
-                    className="w-full p-5 flex justify-between items-center hover:bg-gray-50 transition-colors border-b border-gray-50"
-                >
-                   <div className="flex items-center gap-4">
-                        <Edit3 size={20} className="text-gray-500" />
-                        <span className="text-sm font-bold text-gray-900">个人主页展示</span>
-                   </div>
-                   <ChevronRight size={18} className="text-gray-300" />
-               </button>
-
-               <button 
-                    onClick={() => setCurrentView('privacy')}
-                    className="w-full p-5 flex justify-between items-center hover:bg-gray-50 transition-colors border-b border-gray-50"
-                >
-                   <div className="flex items-center gap-4">
-                        <Lock size={20} className="text-gray-500" />
-                        <span className="text-sm font-bold text-gray-900">隐私设置</span>
-                   </div>
-                   <ChevronRight size={18} className="text-gray-300" />
-               </button>
+               {/*
+                 个人主页展示与隐私设置入口临时隐藏（后续需要重新开发时恢复）
+               */}
 
                <button className="w-full p-5 flex justify-between items-center hover:bg-gray-50 transition-colors">
                    <div className="flex items-center gap-4">

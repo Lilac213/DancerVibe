@@ -535,7 +535,10 @@ const App: React.FC = () => {
           </div>
       )}
 
-      {/* Tab 4: Discover Content */}
+      {/*
+        推荐页临时隐藏（后续需要重新开发时恢复）
+      */}
+      {/* Tab 4: Discover Content
       {activeTab === 'discover' && (
           <div className="flex-1 w-full h-full max-w-4xl mx-auto bg-gray-50">
               <DiscoverView 
@@ -544,6 +547,7 @@ const App: React.FC = () => {
               />
           </div>
       )}
+      */}
 
       {/* Tab 5: Profile Content (NEW) */}
       {activeTab === 'profile' && (
@@ -588,6 +592,10 @@ const App: React.FC = () => {
                   <span className="text-[10px] font-bold">课表</span>
               </button>
 
+              {/*
+                推荐页 Tab 临时隐藏（后续需要重新开发时恢复）
+              */}
+              {/*
               <button 
                 onClick={() => setActiveTab('discover')}
                 className={`flex flex-col items-center gap-1 flex-1 justify-center ${activeTab === 'discover' ? 'text-red-600' : 'text-gray-400 hover:text-gray-600'}`}
@@ -595,6 +603,7 @@ const App: React.FC = () => {
                   <Compass size={22} strokeWidth={activeTab === 'discover' ? 2.5 : 2} />
                   <span className="text-[10px] font-bold">推荐</span>
               </button>
+              */}
               
               <button 
                 onClick={() => setActiveTab('practice')}
