@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Image as ImageIcon, Download, Type, Move, RefreshCcw, Loader2 } from 'lucide-react';
+import { X, Image as ImageIcon, Download, Type, Move, RefreshCcw, Loader2, Sparkles } from 'lucide-react';
 import { ClassSession, User } from '../types';
 import { format } from 'date-fns';
 
